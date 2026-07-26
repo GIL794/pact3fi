@@ -172,7 +172,7 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
           throw new Error(data2.error || 'Server validation failed');
         }
 
-        localStorage.setItem('pactyfi_subscription', plan);
+        localStorage.setItem('pact3fi_subscription', plan);
         setStep('success');
       } catch (err: any) {
         setError(err.message || 'Escrow confirmation failed');
@@ -301,7 +301,7 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '2.5rem' }}>
           {/* Arc Option */}
-          <div 
+          <div
             className="card select-card"
             style={{
               padding: '2.25rem 1.75rem',
@@ -329,7 +329,7 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
           </div>
 
           {/* Algorand Option */}
-          <div 
+          <div
             className="card select-card"
             style={{
               padding: '2.25rem 1.75rem',
@@ -403,7 +403,7 @@ function HomeContent() {
     }
 
     // 2. Check for active saved session
-    const saved = localStorage.getItem('pactyfi_wallet');
+    const saved = localStorage.getItem('pact3fi_wallet');
     if (saved) {
       try {
         const { network: savedNet } = JSON.parse(saved);

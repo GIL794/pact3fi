@@ -1,20 +1,20 @@
-# PactyFi v2 — Agentic Invoicing & Bookkeeping Blueprints
+# Pact3Fi v2 — Agentic Invoicing & Bookkeeping Blueprints
 
-This document outlines the architectural specifications, integration APIs, and copy-pasteable TypeScript code templates required to transition **PactyFi** from the v1 Hackathon MVP to a fully autonomous v2 agentic payments network.
+This document outlines the architectural specifications, integration APIs, and copy-pasteable TypeScript code templates required to transition **Pact3Fi** from the v1 Hackathon MVP to a fully autonomous v2 agentic payments network.
 
 These plans leverage the **Circle Agent Stack**, **HTTP 402 Nanopayments**, and **Circle Developer-Controlled Wallets**.
 
 ---
 
-## 🛠️ Pillar 1: PactyFi "Pay-Per-Invoice" API (HTTP 402 Nanopayments)
+## 🛠️ Pillar 1: Pact3Fi "Pay-Per-Invoice" API (HTTP 402 Nanopayments)
 
 Rather than paying a monthly subscription, automated scripts and external AI agents pay **per invoice created** ($0.05 USDC) using the HTTP 402 protocol.
 
 ### Technical Flow
-1. External agent calls `POST https://pactyfi.com/api/v2/invoices` with payload details.
+1. External agent calls `POST https://pact3fi.com/api/v2/invoices` with payload details.
 2. The server responds with `402 Payment Required` and headers detailing price and target address.
 3. The calling agent handles the `402` response, calls its Circle Agent Wallet CLI to transfer `$0.05 USDC` on Base, and retries the HTTP request attaching the on-chain transaction hash.
-4. PactyFi server verifies the transaction and creates the invoice.
+4. Pact3Fi server verifies the transaction and creates the invoice.
 
 ### Server Implementation (Next.js / Node.js)
 
@@ -74,9 +74,9 @@ Equip any general AI agent (e.g., in a freelancer's dashboard or custom CLI) wit
 import { tool } from 'ai';
 import { execSync } from 'child_process';
 
-export const pactyfiBillingTools = {
+export const pact3fiBillingTools = {
   createInvoice: tool({
-    description: 'Creates a stablecoin invoice request on PactyFi',
+    description: 'Creates a stablecoin invoice request on Pact3Fi',
     parameters: z.object({
       amount: z.string().describe('The invoice amount (e.g. "250.00")'),
       currency: z.enum(['USDC', 'EURC']).describe('Token currency type'),
@@ -85,8 +85,8 @@ export const pactyfiBillingTools = {
       recipientName: z.string().optional().describe('Freelancer name'),
     }),
     execute: async ({ amount, currency, description, recipientAddress, recipientName }) => {
-      // Call PactyFi backend to generate payment link
-      const res = await fetch('https://pactyfi.com/api/invoices', {
+      // Call Pact3Fi backend to generate payment link
+      const res = await fetch('https://pact3fi.com/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, currency, description, recipientAddress, recipientName }),
@@ -94,14 +94,14 @@ export const pactyfiBillingTools = {
       const data = await res.json();
       return {
         message: `Invoice created successfully!`,
-        paymentUrl: `https://pactyfi.com/pay/${data.invoice.id}`,
+        paymentUrl: `https://pact3fi.com/pay/${data.invoice.id}`,
         invoiceDetails: data.invoice,
       };
     },
   }),
 
   payInvoice: tool({
-    description: 'Pays a PactyFi invoice autonomously using the agent wallet',
+    description: 'Pays a Pact3Fi invoice autonomously using the agent wallet',
     parameters: z.object({
       invoiceId: z.string().describe('The ID of the invoice to pay'),
       amount: z.string().describe('Amount to pay'),
@@ -111,7 +111,7 @@ export const pactyfiBillingTools = {
       try {
         // Trigger Circle CLI payment autonomously
         // Note: CLI uses BASE chain defaults config
-        const cmd = `circle services pay "https://pactyfi.com/api/pay" --address "0x0537f18b5b7f92be50e47fb2904e42d6c17f26d2" --chain BASE --data '{"invoiceId":"${invoiceId}","amount":"${amount}","recipientAddress":"${recipientAddress}"}' --output json`;
+        const cmd = `circle services pay "https://pact3fi.com/api/pay" --address "0x0537f18b5b7f92be50e47fb2904e42d6c17f26d2" --chain BASE --data '{"invoiceId":"${invoiceId}","amount":"${amount}","recipientAddress":"${recipientAddress}"}' --output json`;
         
         const output = execSync(cmd).toString();
         const response = JSON.parse(output);
@@ -199,4 +199,4 @@ async function sweepToYield() {
 
 ---
 
-*PactyFi v2 Blueprint · Circle Agent Stack Integration*
+*Pact3Fi v2 Blueprint · Circle Agent Stack Integration*

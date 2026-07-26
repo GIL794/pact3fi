@@ -1,11 +1,11 @@
-# PactyFi — Developer Handover & Architecture Log
+# Pact3Fi — Developer Handover & Architecture Log
 
-This document provides a technical overview, design decisions, and system specifications for the **PactyFi** MVP project, created for the Arc Hackathon (Encode Hub, Shoreditch) on **July 7, 2026**. It serves as a timestamp and guide for future developers onboarding to this codebase.
+This document provides a technical overview, design decisions, and system specifications for the **Pact3Fi** MVP project, created for the Arc Hackathon (Encode Hub, Shoreditch) on **July 7, 2026**. It serves as a timestamp and guide for future developers onboarding to this codebase.
 
 ---
 
 ## 📅 Log & Timestamp
-- **Project Name:** PactyFi (Powered by Arc, owned by Kyrvyn Ltd)
+- **Project Name:** Pact3Fi (Powered by Arc, owned by Kyrvyn Ltd)
 - **Founder / CEO:** Gabriele Iacopo Langellotto
 - **Created Date:** July 7, 2026, 10:49 AM BST
 - **Release Version:** 0.1.0 (Hackathon MVP)
@@ -25,7 +25,7 @@ This document provides a technical overview, design decisions, and system specif
 ## 📁 File Structure & Architecture
 
 ```
-pactyfi/
+pact3fi/
 ├── app/
 │   ├── globals.css           # Token-driven design system and layout styling
 │   ├── layout.tsx            # Root layout with premium fonts (Inter + Space Grotesk) and SEO tags
@@ -44,36 +44,33 @@ pactyfi/
 │       ├── invoices/[id]/
 │       │   └── route.ts      # REST API: Retrieve individual invoice (GET)
 │       └── pay/
-│           └── route.ts      # REST API: Confirm payment on-chain with idempotency checks
+│           └── route.ts      # REST API: Confirm payment on-chain with RPC checks
 ├── components/
 │   ├── Navbar.tsx            # Global navigation with wallet context binding
 │   ├── WalletButton.tsx      # Connect/disconnect controls with state transitions
 │   └── WalletModal.tsx       # Selection modal supporting MetaMask, Coinbase Wallet, WalletConnect
 ├── lib/
 │   ├── arc.ts                # Network definitions, token ABIs, parse/format helpers, switch network
-│   ├── store.ts              # Global in-memory data store with demo data seeding
+│   ├── store.ts              # File-backed invoice database persistence layer
 │   └── wallet.tsx            # React Context Provider managing wallet state, balances, network switches
 ├── .env.example              # Template for environment configuration
-└── .env.local                # Local environment configuration file with default testnet settings
+├── .env.local                # Local environment configuration file with default testnet settings
 ```
 
 ---
 
 ## 🧠 Key Design Decisions & Trade-offs
 
-### 1. In-Memory Store (`lib/store.ts`)
-- **Decision:** Used a server-side `Map` to store invoices instead of a database (like PostgreSQL or MongoDB) for the hackathon MVP.
-- **Trade-off:** High-speed development, zero setup time for presentation, and instant CRUD operations. However, restarting the Next.js process wipes the database (outside of seeded demo transactions).
-- **Refactoring Note:** The CRUD functions are modularized in `lib/store.ts`. Replacing the `Map` with a Prisma client or Supabase SDK only requires modifying these internal function bodies.
+### 1. Persistent Storage (`lib/store.ts`)
+- **Decision:** Utilized a persistent file-backed JSON database (`db/invoices.json`) to store invoices.
+- **Benefits:** Retains custom invoices and paid statuses across server restarts without the overhead of external database deployments, making it completely reliable for hackathon demo runs.
 
-### 2. Client-Side On-Chain Transfers with Server Verification
-- **Decision:** Payments are executed client-side via the user's browser wallet (MetaMask) and verified against the backend via `/api/pay`.
-- **Reasoning:** Minimizes server trust, eliminates key management security risks for the platform (non-custodial), and follows standard Web3 paradigms.
-- **Verification Loop:** Once the transaction hash is received from MetaMask, it is passed to the backend, which processes fees and logs the confirmation in the invoice database.
+### 2. On-Chain Server Verification
+- **Decision:** Payments are verified server-side inside `/api/pay` by calling the Arc and Algorand RPC nodes directly.
+- **Reasoning:** Disables client-side spoofing, verifying that the actual transactions succeeded, targeted the correct token address, and routed payout and fee balances correctly on-chain.
 
 ### 3. Business Model fee of 0.5%
 - **Decision:** Implemented a fixed 0.5% fee on payments (visible in invoice previews and dashboards).
-- **Calculation:** Handled inside `/api/pay` and calculated in `BigInt` formats in frontend JS to avoid floating-point errors.
 - **Structure:**
   - Invoice Amount: $A$
   - Fee (0.5%): $A \times 0.005$
@@ -81,16 +78,14 @@ pactyfi/
 
 ### 4. Adaptive Onboarding Wizard (`app/onboarding/page.tsx`)
 - **Decision:** A custom-built multi-step wizard explaining Web3 concepts (wallets, gas, stablecoin stability) using interactive questions.
-- **Goal:** Focuses on user-friendliness for traditional freelancers who are completely new to stablecoins.
 
 ---
 
 ## 🚀 Recommended Future Development Phases
 
-1. **Database Integration:** Connect `lib/store.ts` to a persistent database (e.g., PostgreSQL via Prisma).
-2. **On-Chain Event Listener:** Write a background worker (e.g., in NextJS or Go) that listens to Arc blockchain transfer events to update payment status automatically (eliminating reliance on the frontend to report the tx hash).
-3. **Smart Contract Payments:** Build a dedicated payment router smart contract to split the fee (0.5%) and recipient transfer (99.5%) in a single atomic transaction rather than doing direct token transfers.
-4. **USDC-as-Gas optimization:** Implement Arc's native gasless/USDC-gas abstraction to allow clients to sign transactions without holding native L1 gas tokens.
+1. **Enterprise Database Integration:** Connect `lib/store.ts` to a cloud database (e.g. PostgreSQL via Prisma).
+2. **On-Chain Event Listener:** Write a background worker (e.g., in NestJS or Go) that listens to Arc blockchain transfer events to update payment status automatically.
+3. **Smart Contract Payments:** Build a dedicated payment router smart contract to split the fee (0.5%) and recipient transfer (99.5%) in a single atomic transaction.
 
 ---
 

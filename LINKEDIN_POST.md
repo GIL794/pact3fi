@@ -14,9 +14,9 @@ If there’s one invaluable lesson hackathons have taught me, it’s this: **You
 
 Tonight, I’m participating in the Arc L1 Hackathon at the Encode Hub in Shoreditch. But instead of starting from an empty screen, I did a deep audit of my past projects (specifically, smart contract mechanisms from ArcCredit and backend payment services from SCAGENT).
 
-By combining these two distinct architectures, we built and shipped a complete product in just a few hours: **PactyFi** ⚡ (representing a pact or agreement, combined with DeFi).
+By combining these two distinct architectures, we built and shipped a complete product in just a few hours: **Pact3Fi** ⚡ (representing a pact or agreement, combined with DeFi).
 
-PactyFi is a premium "Stripe-meets-crypto" payments MVP that enables freelancers to:
+Pact3Fi is a premium "Stripe-meets-crypto" payments MVP that enables freelancers to:
 1. Create invoice payment links in 30 seconds.
 2. Receive USDC or EURC stablecoin payments instantly on the Arc network.
 3. Skip traditional 3-day bank settlement delays and cut fees by 6x (0.5% vs Stripe's 2.9%).
@@ -45,7 +45,7 @@ To maximize engagement on this post, attach the following screenshots in a carou
    - **File:** [landing_page_1783417603650.png](file:///c:/Users/Gabriele/Documents/GitHub/08_Blockchain_ARC/salario/public/screenshots/landing_page_1783417603650.png)
    - **Preview:**
      ![Landing Page](file:///c:/Users/Gabriele/Documents/GitHub/08_Blockchain_ARC/salario/public/screenshots/landing_page_1783417603650.png)
-   - **Caption:** PactyFi's deep space dark UI featuring particle canvas animations and a real-time global payments ticker.
+   - **Caption:** Pact3Fi's deep space dark UI featuring particle canvas animations and a real-time global payments ticker.
    
 2. **Slide 2: Freelancer Dashboard**
    - **File:** [dashboard_page_1783417641352.png](file:///c:/Users/Gabriele/Documents/GitHub/08_Blockchain_ARC/salario/public/screenshots/dashboard_page_1783417641352.png)
@@ -67,4 +67,4 @@ To maximize engagement on this post, attach the following screenshots in a carou
 
 ---
 
-*Drafted for Kyrvyn Ltd / PactyFi Hackathon launch.*
+*Drafted for Kyrvyn Ltd / Pact3Fi Hackathon launch.*

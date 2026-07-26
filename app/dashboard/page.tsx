@@ -26,7 +26,7 @@ function DashboardContent() {
   const [copied, setCopied] = useState<string | null>(null);
   const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pactyfi_subscription') as 'free' | 'pro' | 'business' || 'free';
+      return localStorage.getItem('pact3fi_subscription') as 'free' | 'pro' | 'business' || 'free';
     }
     return 'free';
   });
