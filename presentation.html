@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Pact3Fi — Arc Hackathon Presentation</title>
+
+		<!-- Reveal.js styles from CDN -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+
+		<!-- Google Fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;600&family=Outfit:wght@400;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+
+		<!-- Theme overrides matching Pact3Fi Premium Color Palette -->
+		<style>
+			:root {
+				--r-background-color: #050506;
+				--r-main-font: 'Inter', sans-serif;
+				--r-main-font-size: 32px;
+				--r-main-color: #F2F2F4;
+				--r-heading-font: 'Outfit', sans-serif;
+				--r-heading-color: #C59B27;
+				--r-heading-font-weight: 800;
+				--r-link-color: #00d4ff;
+				--accent-gold: #C59B27;
+				--accent-red: #7A0010;
+				--accent-purple: #3A0722;
+				--bg-card: #111113;
+				--border-gold: rgba(197, 155, 39, 0.25);
+			}
+
+			.reveal {
+				font-family: var(--r-main-font);
+				color: var(--r-main-color);
+			}
+
+			/* Premium layouts */
+			.slide-container {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				height: 100%;
+				padding: 1rem;
+				box-sizing: border-box;
+			}
+
+			.roman-header {
+				font-family: 'Cinzel', serif;
+				color: var(--accent-gold);
+				letter-spacing: 0.15em;
+				text-transform: uppercase;
+				font-size: 1.5rem !important;
+				margin-bottom: 2rem !important;
+				text-shadow: 0 0 12px rgba(197, 155, 39, 0.15);
+			}
+
+			.slide-title {
+				font-family: 'Outfit', sans-serif;
+				font-weight: 800;
+				color: #F2F2F4 !important;
+				font-size: 3rem !important;
+				margin-bottom: 1.5rem !important;
+				line-height: 1.2;
+			}
+
+			.grid-2 {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 2rem;
+				width: 100%;
+				align-items: center;
+			}
+
+			.grid-3 {
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr;
+				gap: 1.5rem;
+				width: 100%;
+				margin-top: 1rem;
+			}
+
+			/* Cards styles */
+			.presentation-card {
+				background: var(--bg-card);
+				border: 1px solid var(--border-gold);
+				border-radius: 12px;
+				padding: 1.5rem;
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+				text-align: left;
+			}
+
+			.presentation-card.highlighted {
+				border-color: var(--accent-gold);
+				box-shadow: 0 0 20px rgba(197, 155, 39, 0.1);
+			}
+
+			.card-icon {
+				font-size: 2rem;
+				margin-bottom: 0.75rem;
+			}
+
+			.card-title {
+				font-size: 1.25rem !important;
+				font-weight: 700;
+				color: var(--accent-gold) !important;
+				margin-bottom: 0.5rem !important;
+				text-transform: uppercase;
+			}
+
+			.card-text {
+				font-size: 0.85rem;
+				color: #787880;
+				line-height: 1.6;
+			}
+
+			/* Code block formatting */
+			pre {
+				background: #0d0d0f !important;
+				border: 1px solid rgba(255, 255, 255, 0.05);
+				border-radius: 8px;
+				padding: 1rem !important;
+				box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+			}
+
+			code {
+				font-family: 'Fira Code', monospace !important;
+				font-size: 0.75rem !important;
+				line-height: 1.5 !important;
+				color: #F2F2F4 !important;
+			}
+
+			/* Lists formatting */
+			ul.bullet-list {
+				list-style: none;
+				padding: 0;
+				margin: 1.5rem 0 0;
+			}
+
+			ul.bullet-list li {
+				position: relative;
+				padding-left: 2rem;
+				margin-bottom: 1rem;
+				font-size: 1.1rem;
+				color: #787880;
+				text-align: left;
+			}
+
+			ul.bullet-list li::before {
+				content: "§";
+				position: absolute;
+				left: 0;
+				color: var(--accent-gold);
+				font-weight: bold;
+			}
+
+			ul.bullet-list li strong {
+				color: #F2F2F4;
+			}
+
+			/* Background glows */
+			.glow-circle {
+				position: absolute;
+				width: 500px;
+				height: 500px;
+				border-radius: 50%;
+				filter: blur(120px);
+				pointer-events: none;
+				z-index: -1;
+			}
+
+			.glow-purple {
+				background: radial-gradient(circle, rgba(58, 7, 34, 0.4), transparent);
+				top: -100px;
+				left: -100px;
+			}
+
+			.glow-crimson {
+				background: radial-gradient(circle, rgba(122, 0, 16, 0.25), transparent);
+				bottom: -150px;
+				right: -100px;
+			}
+
+			/* Typography accents */
+			.gold-text {
+				color: var(--accent-gold);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				<!-- SLIDE 1: COVER -->
+				<section>
+					<div class="slide-container" style="position: relative;">
+						<div class="glow-circle glow-purple"></div>
+						<div class="glow-circle glow-crimson"></div>
+						
+						<div style="border: 2px double var(--accent-gold); padding: 3rem 4rem; border-radius: 8px; background: rgba(17, 17, 19, 0.6); backdrop-filter: blur(10px);">
+							<h1 style="font-family: 'Cinzel', serif; font-size: 5rem; letter-spacing: 0.18em; color: var(--accent-gold); margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(197, 155, 39, 0.3);">PACT3FI</h1>
+							<p style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.25em; color: #787880; margin-bottom: 2rem;">Sovereign Escrow & Billing Network</p>
+							
+							<div style="width: 80px; height: 1px; background: var(--accent-gold); margin: 0 auto 2rem;"></div>
+							
+							<p style="font-size: 0.95rem; color: #F2F2F4; font-weight: bold;">Built for the Arc Hackathon (Encode Club)</p>
+							<p style="font-size: 0.8rem; color: #787880; margin-top: 0.5rem;">Presenter: Gabriele Iacopo Langellotto — CEO, Kyrvyn Ltd</p>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 2: THE PROBLEM -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ I: The Payments Crisis</div>
+						<h2 class="slide-title">Traditional Billing is Broken</h2>
+						
+						<div class="grid-2">
+							<div>
+								<p style="font-size: 1rem; color: #787880; line-height: 1.7; text-align: left;">
+									Freelancers, agencies, and autonomous AI agents lose **thousands of dollars** annually to outdated rails, slow clearing times, and processing fees.
+								</p>
+								<ul class="bullet-list">
+									<li><strong>3–5 Day Settlement:</strong> Traditional wires and credit cards hold your cash flow hostage.</li>
+									<li><strong>High Merchant Fees:</strong> Card processors take up to 3% on invoices.</li>
+									<li><strong>No Agent Rails:</strong> AI agents cannot pay subscriptions via standard bank accounts.</li>
+								</ul>
+							</div>
+							<div class="presentation-card highlighted">
+								<div class="card-icon" style="color: var(--accent-red);">📉</div>
+								<div class="card-title" style="color: var(--accent-red) !important;">Traditional Cost</div>
+								<p style="font-size: 1.3rem; font-weight: bold; color: #F2F2F4; margin: 0.75rem 0;">£145.30 per month</p>
+								<p class="card-text">Deducted from a standard £5,000 monthly wire via Stripe, accompanied by conversion rate spreads and transaction holds.</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 3: THE SOLUTION -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ II: The Remedy</div>
+						<h2 class="slide-title">Enter Pact3Fi on Arc L1</h2>
+						
+						<div class="grid-3">
+							<div class="presentation-card">
+								<div class="card-icon">⚡</div>
+								<div class="card-title">Sub-Second Finality</div>
+								<p class="card-text">Using the Malachite consensus engine, stablecoin invoice payouts complete on-chain in under 1 second.</p>
+							</div>
+							<div class="presentation-card">
+								<div class="card-icon">💵</div>
+								<div class="card-title">USDC-as-Gas</div>
+								<p class="card-text">Pact3Fi leverages Arc L1's native gas feature. Payer accounts only need USDC/EURC—no native ETH required.</p>
+							</div>
+							<div class="presentation-card">
+								<div class="card-icon">🛡️</div>
+								<div class="card-title">On-Chain verification</div>
+								<p class="card-text">Invoices are tracked via a persistent database, with payouts and splits verified on-chain via the RPC node.</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 4: THE ARCHITECTURE -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ III: Core Workspaces</div>
+						<h2 class="slide-title">Multi-Chain Routing Engine</h2>
+						
+						<div class="grid-2">
+							<div class="presentation-card" style="border-color: rgba(58, 7, 34, 0.6);">
+								<div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🏛️</div>
+								<div class="card-title" style="color: #a855f7 !important;">Arc L1 Workspace</div>
+								<ul style="font-size: 0.8rem; padding-left: 1.25rem; color: #787880; line-height: 1.8;">
+									<li>Uses Ethers.js v6 for RPC interaction</li>
+									<li>MetaMask, Coinbase Wallet & WalletConnect</li>
+									<li>USDC and EURC ERC-20 contract addresses</li>
+									<li>Sequential double-tx split payout and fee signing</li>
+								</ul>
+							</div>
+							<div class="presentation-card" style="border-color: rgba(0, 212, 255, 0.3);">
+								<div style="font-size: 2.2rem; margin-bottom: 0.5rem;">⚡</div>
+								<div class="card-title" style="color: #00d4ff !important;">Algorand Vault</div>
+								<ul style="font-size: 0.8rem; padding-left: 1.25rem; color: #787880; line-height: 1.8;">
+									<li>Uses Algorand SDK for Indexer calls</li>
+									<li>Pera Wallet & MyAlgo connection integrations</li>
+									<li>USDC (10458941) & EURC (230190169) ASAs</li>
+									<li>Atomic transaction group fee split routing</li>
+								</ul>
+							</div>
+						</div>
+						<p style="font-size: 0.8rem; color: #787880; margin-top: 2rem;">
+							Smart detection checks browser-injected extensions. If both are found, the app loads an elegant Workspace Selection overlay to bypass conflicts.
+						</p>
+					</div>
+				</section>
+
+				<!-- SLIDE 5: PILLAR 1 -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ IV: Pillar 1</div>
+						<h2 class="slide-title">HTTP 402 Nanopayments</h2>
+						
+						<div class="grid-2">
+							<div>
+								<p style="font-size: 0.95rem; color: #787880; line-height: 1.7; text-align: left; margin-bottom: 1rem;">
+									AI agents create invoices programmatically using HTTP 402. Every request is verified on-chain.
+								</p>
+								<ul class="bullet-list" style="margin-top: 0.5rem;">
+									<li style="font-size: 0.9rem;"><strong>Unpaid request:</strong> Server returns 402 with billing headers.</li>
+									<li style="font-size: 0.9rem;"><strong>Nano-transfer:</strong> Agent sends 0.05 USDC to target platform address.</li>
+									<li style="font-size: 0.9rem;"><strong>RPC Validation:</strong> Server fetches receipt, validates logs, registers invoice.</li>
+								</ul>
+							</div>
+							<div>
+								<pre><code class="language-typescript">// Response returned to unpaid agent requests:
+{
+  "error": "Payment Required",
+  "message": "Invoice requires a 0.05 USDC fee.",
+  "paymentTarget": "0x000...001",
+  "paymentAmount": "0.05",
+  "paymentAsset": "0x5Fb...aa3",
+  "paymentChainId": 5042002
+}</code></pre>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 6: PILLAR 2 -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ V: Pillar 2</div>
+						<h2 class="slide-title">AI Agent SDK Billing Tooling</h2>
+						
+						<div class="grid-2">
+							<div>
+								<pre><code class="language-typescript">// Vercel AI SDK compatible billing tools
+export const pact3fiAgentTools = {
+  createInvoiceTool: tool({
+    description: 'Creates a Pact3Fi invoice, paying 402 fee',
+    parameters: z.object({ amount: z.string(), ... }),
+    execute: async (params) => { /* sign fee & POST */ }
+  }),
+  payInvoiceTool: tool({
+    description: 'Pays Pact3Fi invoice, splitting fee',
+    parameters: z.object({ invoiceId: z.string() }),
+    execute: async (params) => { /* sign & payout */ }
+  })
+};</code></pre>
+							</div>
+							<div style="text-align: left;">
+								<p style="font-size: 0.95rem; color: #787880; line-height: 1.7; margin-bottom: 1.5rem;">
+									Equips external LLM-driven agents with standard functions to autonomously interact with Pact3Fi contracts.
+								</p>
+								<ul class="bullet-list" style="margin-top: 0;">
+									<li style="font-size: 0.9rem;"><strong>Fully Programmatic:</strong> Signs and sends transactions directly using private keys.</li>
+									<li style="font-size: 0.9rem;"><strong>Splits Fees On-Chain:</strong> Tooling automates dual payout and platform split logic.</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 7: PILLAR 3 -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ VI: Pillar 3</div>
+						<h2 class="slide-title">Autonomous DeFi Yield Sweeper</h2>
+						
+						<div class="grid-2">
+							<div style="text-align: left;">
+								<p style="font-size: 0.95rem; color: #787880; line-height: 1.7; margin-bottom: 1.5rem;">
+									A background worker monitors the agent wallet balance. To maximize capital efficiency, excess floats are swept into yield protocols.
+								</p>
+								<ul class="bullet-list" style="margin-top: 0;">
+									<li style="font-size: 0.9rem;"><strong>Reserve Buffer:</strong> Always retains a 100 USDC gas buffer for operations.</li>
+									<li style="font-size: 0.9rem;"><strong>ERC-4626 standard:</strong> Sweeps remaining balance into yield-bearing vaults on Arc L1.</li>
+								</ul>
+							</div>
+							<div>
+								<pre><code class="language-typescript">// Sweeping excess USDC into Arc Vault:
+const balance = await usdc.balanceOf(signer.address);
+if (balance > reserveThreshold) {
+  const sweepAmount = balance - reserveThreshold;
+  // 1. Approve
+  await usdc.approve(YIELD_VAULT_ADDRESS, sweepAmount);
+  // 2. Deposit into vault
+  await vault.deposit(sweepAmount, signer.address);
+}</code></pre>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- SLIDE 8: SUMMARY & VISION -->
+				<section>
+					<div class="slide-container">
+						<div class="roman-header">§ VII: The Future</div>
+						<h2 class="slide-title">Sovereign Agentic Finance</h2>
+						
+						<div style="display: flex; gap: 2rem; width: 100%; margin-top: 1rem;">
+							<div class="presentation-card highlighted" style="flex: 1; text-align: center;">
+								<div style="font-size: 3rem; margin-bottom: 0.5rem;">🏆</div>
+								<div class="card-title" style="color: var(--accent-gold) !important; text-align: center;">Pact3Fi Hackathon MVP</div>
+								<p style="font-size: 0.85rem; color: #787880; line-height: 1.6; margin-top: 0.75rem;">
+									Clean Next.js interface with real-time TanStack auto-polling, dynamic wallet connectors, and on-chain verification.
+								</p>
+							</div>
+							
+							<div class="presentation-card" style="flex: 1; text-align: center;">
+								<div style="font-size: 3rem; margin-bottom: 0.5rem;">🤖</div>
+								<div class="card-title" style="color: #F2F2F4 !important; text-align: center;">V2 Agent Network</div>
+								<p style="font-size: 0.85rem; color: #787880; line-height: 1.6; margin-top: 0.75rem;">
+									Transitioning billing from human checkouts to programmatic HTTP 402 micro-escrows running autonomously.
+								</p>
+							</div>
+						</div>
+						
+						<p style="font-size: 1rem; color: var(--accent-gold); margin-top: 2.5rem; font-weight: bold;">
+							PACT3FI — BOUND BY CODE. SIGNED ON-CHAIN.
+						</p>
+					</div>
+				</section>
+
+			</div>
+		</div>
+
+		<!-- Reveal.js scripts from CDN -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+				slideNumber: 'c/t',
+				transition: 'slide',
+				center: true,
+				controls: true,
+				progress: true,
+				backgroundTransition: 'fade'
+			});
+		</script>
+	</body>
+</html>
