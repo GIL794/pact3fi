@@ -5,6 +5,10 @@
 
 ---
 
+> ⚡ **"Invoicing and Paying will never be the same! Pact3Fi is a versatile platform, built to adapt to different blockchains and redirect to tailored content based on Web3 Wallet detection, no more scattered operations! This platform enables freelancers and automated AI agents to create stablecoin invoices ("Pacts") and receive USDC/EURC payments on Arc L1 and Algorand with sub-second finality, on-chain platform fee routing, server-side verification, and HTTP 402 API nanopayments. On access you don't subscribe, have a payment gate to use the service, or unforeseen costs; it bridges traditional invoices and decentralized micro-pacts, providing a friction-free payment gate with server-side on-chain validation and fee splits."**
+
+---
+
 ## What is Pact3Fi?
 
 **Pact3Fi** is a professional payments and agentic billing network designed for freelancers and AI agents. It enables professionals to create stablecoin invoices ("Pacts") and receive **USDC or EURC stablecoin payments** with sub-second finality on the **Arc blockchain** or instantly on **Algorand**.
