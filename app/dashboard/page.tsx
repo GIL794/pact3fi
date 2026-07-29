@@ -26,7 +26,7 @@ function DashboardContent() {
   const [copied, setCopied] = useState<string | null>(null);
   const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pact3fi_subscription') as 'free' | 'pro' | 'business' || 'free';
+      return localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business' || 'free';
     }
     return 'free';
   });
@@ -68,7 +68,7 @@ function DashboardContent() {
         <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🔌</div>
         <h2 className="heading-lg" style={{ marginBottom: '0.75rem' }}>Connect your wallet</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-          Connect your wallet to view your Pact3Fi dashboard and payment history.
+          Connect your wallet to view your Pactopus dashboard and payment history.
         </p>
         <button className="btn btn-primary btn-lg" onClick={() => setShowWalletModal(true)} id="dashboard-connect-btn">
           Connect Wallet
@@ -251,7 +251,7 @@ function DashboardContent() {
         <div style={{ flex: 1 }}>
           <h3 className="heading-md" style={{ marginBottom: '0.375rem', fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>💡 Transparent Fees</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Pact3Fi charges a 0.5% fee on paid invoices — 6× cheaper than Stripe (2.9%). On a 5,000 USDC monthly volume, you save an extra 1,440 USDC yearly.
+            Pactopus charges a 0.5% fee on paid invoices — 6× cheaper than Stripe (2.9%). On a 5,000 USDC monthly volume, you save an extra 1,440 USDC yearly.
           </p>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>

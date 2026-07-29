@@ -172,7 +172,7 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
           throw new Error(data2.error || 'Server validation failed');
         }
 
-        localStorage.setItem('pact3fi_subscription', plan);
+        localStorage.setItem('pactopus_subscription', plan);
         setStep('success');
       } catch (err: any) {
         setError(err.message || 'Escrow confirmation failed');
@@ -292,7 +292,7 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
         <div style={{ position: 'absolute', bottom: -150, right: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(0,212,255,0.15), transparent)', filter: 'blur(50px)', pointerEvents: 'none' }} />
 
         <div style={{ marginBottom: '1.5rem' }}>
-          <img src="/logo.svg" alt="Pact3Fi Logo" style={{ height: '48px', margin: '0 auto 1.5rem' }} />
+          <img src="/logo.svg" alt="Pactopus Logo" style={{ height: '48px', margin: '0 auto 1.5rem' }} />
           <h2 className="heading-xl" style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Multiple Wallets Detected</h2>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', fontSize: '0.9375rem', lineHeight: 1.6 }}>
             Both EVM (MetaMask/Coinbase) and Algorand extensions were found. Select which network workspace you want to initialize.
@@ -403,7 +403,7 @@ function HomeContent() {
     }
 
     // 2. Check for active saved session
-    const saved = localStorage.getItem('pact3fi_wallet');
+    const saved = localStorage.getItem('pactopus_wallet');
     if (saved) {
       try {
         const { network: savedNet } = JSON.parse(saved);
@@ -559,7 +559,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>§ II: The Process</p>
-            <h2 className="display-md">How Pact3Fi Works</h2>
+            <h2 className="display-md">How Pactopus Works</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Immutable, secure, and absolute</p>
           </div>
 
@@ -612,7 +612,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p className="label" style={{ color: 'var(--accent-red)', marginBottom: '0.75rem' }}>The Law of Exchange</p>
-            <h2 className="display-md">Old way vs Pact3Fi</h2>
+            <h2 className="display-md">Old way vs Pactopus</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Based on a £5,000 monthly invoice</p>
           </div>
 
@@ -636,7 +636,7 @@ function HomeContent() {
 
             <div className="compare-card new" style={{ borderTop: '3px solid var(--accent-gold)' }}>
               <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚡</div>
-              <h3 className="heading-md" style={{ marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Pact3Fi on {isAlgo ? 'Algorand' : 'Arc'}</h3>
+              <h3 className="heading-md" style={{ marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Pactopus on {isAlgo ? 'Algorand' : 'Arc'}</h3>
               {[
                 ['Settlement', isAlgo ? '1.5 seconds' : '<1 second'],
                 ['Fee', '0.5% = £25 — save £120'],
@@ -677,7 +677,7 @@ function HomeContent() {
               {
                 icon: '⚖️',
                 title: 'Perfect Alignment',
-                desc: 'Pact3Fi creates a perfect balance of trust between clients and freelancers, backed by the certainty of the blockchain.'
+                desc: 'Pactopus creates a perfect balance of trust between clients and freelancers, backed by the certainty of the blockchain.'
               }
             ].map(f => (
               <div key={f.title} className="card" style={{ padding: '2.5rem 2rem' }}>
@@ -776,7 +776,7 @@ function HomeContent() {
             Ready to create your first <span className="gradient-text-gold">Pact</span>?
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
-            Join freelancers and consultants already using Pact3Fi. Deploy your first contract — free, no setup required.
+            Join freelancers and consultants already using Pactopus. Deploy your first contract — free, no setup required.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="bottom-cta-btn">
@@ -795,7 +795,7 @@ function HomeContent() {
           <div className="footer-inner">
             <div>
               <div className="navbar-logo" style={{ marginBottom: '0.5rem' }}>
-                <img src="/logo.svg" alt="Pact3Fi" style={{ height: '36px', width: 'auto' }} />
+                <img src="/logo.svg" alt="Pactopus" style={{ height: '36px', width: 'auto' }} />
               </div>
               <p className="footer-copy">
                 © 2026 Kyrvyn Ltd. All rights reserved.<br />

@@ -18,7 +18,7 @@ export default function Navbar() {
           {/* Logo & Network Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Link href="/" className="navbar-logo" style={{ color: 'var(--text-primary)' }}>
-              <img src="/logo.svg" alt="Pact3Fi" style={{ height: '36px', width: 'auto' }} />
+              <img src="/logo.svg" alt="Pactopus" style={{ height: '36px', width: 'auto' }} />
             </Link>
             <span className={`badge ${network === 'algorand' ? 'badge-cyan' : 'badge-purple'}`} style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {network === 'algorand' ? 'Algorand' : 'Arc L1'}

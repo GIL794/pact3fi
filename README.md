@@ -1,19 +1,19 @@
-# Pact3Fi — Get Paid in Stablecoins, Instantly
+# Pactopus — The Multi-Chain Chameleon Invoicing Network
 
 > **Built by Gabriele Iacopo Langellotto — CEO/Founder, Kyrvyn Ltd**  
 > **Submitted for the Arc Hackathon (Encode Club) — July 2026**
 
 ---
 
-> ⚡ **"Invoicing and Paying will never be the same! Pact3Fi is a versatile platform, built to adapt to different blockchains and redirect to tailored content based on Web3 Wallet detection, no more scattered operations! This platform enables freelancers and automated AI agents to create stablecoin invoices ("Pacts") and receive USDC/EURC payments on Arc L1 and Algorand with sub-second finality, on-chain platform fee routing, server-side verification, and HTTP 402 API nanopayments. On access you don't subscribe, have a payment gate to use the service, or unforeseen costs; it bridges traditional invoices and decentralized micro-pacts, providing a friction-free payment gate with server-side on-chain validation and fee splits."**
+> ⚡ **"Invoicing and Paying will never be the same! Pactopus is a versatile platform, built to adapt to different blockchains like a chameleon and stretch its payment arms like an octopus based on Web3 Wallet detection, no more scattered operations! This platform enables freelancers and automated AI agents to create stablecoin invoices ("Pacts") and receive USDC/EURC payments on Arc L1 and Algorand with sub-second finality, on-chain platform fee routing, server-side verification, and HTTP 402 API nanopayments. On access you don't subscribe, have a payment gate to use the service, or unforeseen costs; it bridges traditional invoices and decentralized micro-pacts, providing a friction-free payment gate with server-side on-chain validation and fee splits."**
 
 ---
 
-## What is Pact3Fi?
+## What is Pactopus?
 
-**Pact3Fi** is a professional payments and agentic billing network designed for freelancers and AI agents. It enables professionals to create stablecoin invoices ("Pacts") and receive **USDC or EURC stablecoin payments** with sub-second finality on the **Arc blockchain** or instantly on **Algorand**.
+**Pactopus** is a professional payments and agentic billing network designed for freelancers and AI agents. It enables professionals to create stablecoin invoices ("Pacts") and receive **USDC or EURC stablecoin payments** with sub-second finality on the **Arc blockchain** or instantly on **Algorand**.
 
-Pact3Fi bridges traditional invoices and decentralized micro-pacts, providing a friction-free payment gate with server-side on-chain validation and fee splits.
+Pactopus bridges traditional invoices and decentralized micro-pacts, providing a friction-free payment gate with server-side on-chain validation and fee splits.
 
 ---
 
@@ -21,7 +21,7 @@ Pact3Fi bridges traditional invoices and decentralized micro-pacts, providing a 
 
 Freelancers and automated AI agents lose thousands of dollars annually to payment delays, FX conversions, and processing fees.
 
-| Feature | Traditional (Stripe/Wire) | Pact3Fi |
+| Feature | Traditional (Stripe/Wire) | Pactopus |
 |---------|-------------------------|---------|
 | **Settlement Time** | 3–5 business days | **Sub-second (Arc) / 1.5s (Algorand)** |
 | **Platform Fee** | 2.9% + £0.30 | **0.5%** |
@@ -40,9 +40,9 @@ Freelancers and automated AI agents lose thousands of dollars annually to paymen
 
 ---
 
-## 🛠️ Pact3Fi v2 Agentic Blueprints (Arc L1)
+## 🛠️ Pactopus v2 Agentic Blueprints (Arc L1)
 
-Pact3Fi includes a complete implementation of our autonomous v2 agentic payment blueprints:
+Pactopus includes a complete implementation of our autonomous v2 agentic payment blueprints:
 
 ### Pillar 1: HTTP 402 Nanopayments (`/api/v2/invoices`)
 Automated agents can create invoices programmatically by paying a nanopayment fee ($0.05 USDC) per creation.
@@ -72,7 +72,7 @@ An automated route that sweeps excess USDC balances above a threshold (e.g. 100 
 ## Project Structure
 
 ```
-pact3fi/
+pactopus/
 ├── app/
 │   ├── page.tsx                ← Landing page with workspace overlay
 │   ├── onboarding/page.tsx     ← 4-question Q&A onboarding
@@ -136,10 +136,10 @@ npm start
 
 ## 📊 Hackathon Slide Presentation
 
-Pact3Fi includes a standalone, premium-designed interactive slide deck built using Reveal.js:
+Pactopus includes a standalone, premium-designed interactive slide deck built using Reveal.js:
 - **Interactive Presentation:** Open [presentation.html](file:///c:/Users/Gabriele/Documents/GitHub/08_Blockchain_ARC/salario/presentation.html) in any web browser to view the slides.
 - It covers: The payments crisis, the Arc L1 solution, multi-chain routing layouts, and details on all three v2 agentic billing pillars.
 
 ---
 
-*Pact3Fi — Built by Kyrvyn Ltd · Submitted to the Arc Hackathon (Encode)*
+*Pactopus — Built by Kyrvyn Ltd · Submitted to the Arc Hackathon (Encode)*

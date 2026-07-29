@@ -36,7 +36,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: "Great, you're ahead of the game!",
           body: 'Stablecoins like USDC and EURC are pegged 1:1 to fiat currencies — so 1 USDC always equals $1, and 1 EURC always equals €1. No price volatility, no surprises.',
-          highlight: 'Pact3Fi uses USDC and EURC — the two most trusted stablecoins, issued by Circle.',
+          highlight: 'Pactopus uses USDC and EURC — the two most trusted stablecoins, issued by Circle.',
         },
       },
       {
@@ -71,8 +71,8 @@ const QUESTIONS: Question[] = [
         sub: 'Monthly or more frequent',
         emoji: '✅',
         response: {
-          heading: 'Then Pact3Fi will secure your payments!',
-          body: 'If you invoice £5,000/month and use Stripe or PayPal, you\'re paying ~£145 in fees and waiting 3-5 days. Pact3Fi charges 0.5% (£25) and settles in under 1 second.',
+          heading: 'Then Pactopus will secure your payments!',
+          body: 'If you invoice £5,000/month and use Stripe or PayPal, you\'re paying ~£145 in fees and waiting 3-5 days. Pactopus charges 0.5% (£25) and settles in under 1 second.',
           highlight: 'That\'s £120 saved every month — £1,440 per year — back in your pocket.',
         },
       },
@@ -82,7 +82,7 @@ const QUESTIONS: Question[] = [
         emoji: '📅',
         response: {
           heading: 'Every pact matters — even occasional ones!',
-          body: 'When you do send an invoice, Pact3Fi means you receive payment the same day — not in a week. Your client saves on FX fees too, especially if they\'re paying in a different currency.',
+          body: 'When you do send an invoice, Pactopus means you receive payment the same day — not in a week. Your client saves on FX fees too, especially if they\'re paying in a different currency.',
           highlight: 'The smaller the invoice, the more a 0.5% fee beats traditional 2.9% + fixed costs.',
         },
       },
@@ -93,7 +93,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: 'Starting on the right foot — smart move!',
           body: 'Setting up stablecoin payments from day one means you\'re ready for global clients without friction. Many modern businesses prefer crypto Pacts for speed and accounting clarity.',
-          highlight: 'Start with Pact3Fi, and you\'ll never have to worry about "when does the bank transfer arrive?"',
+          highlight: 'Start with Pactopus, and you\'ll never have to worry about "when does the bank transfer arrive?"',
         },
       },
     ],
@@ -118,7 +118,7 @@ const QUESTIONS: Question[] = [
         sub: 'EU, US, and others',
         emoji: '🌍',
         response: {
-          heading: 'This is where Pact3Fi truly shines!',
+          heading: 'This is where Pactopus truly shines!',
           body: 'Cross-border stablecoin payments avoid FX conversion fees, SWIFT fees (£25-50 per wire), and delays. A client in Germany pays you in EURC. A client in the US pays in USDC. Both land in your wallet instantly.',
           highlight: 'No currency conversion surprises. No "where\'s my payment?" chases.',
         },
@@ -129,8 +129,8 @@ const QUESTIONS: Question[] = [
         emoji: '✈️',
         response: {
           heading: 'You\'re going to love stablecoins!',
-          body: 'International wires can take 5-7 days and cost £30-100 in fees each way. With Pact3Fi, any client globally can pay you in USDC in under 1 second — and it\'s irreversible (no chargebacks).',
-          highlight: 'Pact3Fi is built for the global creator economy. This is your payments infrastructure.',
+          body: 'International wires can take 5-7 days and cost £30-100 in fees each way. With Pactopus, any client globally can pay you in USDC in under 1 second — and it\'s irreversible (no chargebacks).',
+          highlight: 'Pactopus is built for the global creator economy. This is your payments infrastructure.',
         },
       },
     ],
@@ -146,7 +146,7 @@ const QUESTIONS: Question[] = [
         emoji: '⚡',
         response: {
           heading: 'Instant settlement is our superpower!',
-          body: 'With Arc blockchain powering Pact3Fi, payments confirm in under 1 second. The moment your client clicks "Pay", the stablecoins are in your wallet. No pending state. No "allow 3-5 working days."',
+          body: 'With Arc blockchain powering Pactopus, payments confirm in under 1 second. The moment your client clicks "Pay", the stablecoins are in your wallet. No pending state. No "allow 3-5 working days."',
           highlight: 'Send an invoice at 11pm on a Friday. Get paid before midnight.',
         },
       },
@@ -157,7 +157,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: 'Your money should stay yours!',
           body: 'At £5,000/month invoiced, you save £1,440/year vs Stripe. At £20,000/month, that\'s £5,760/year. The math is simple: 0.5% beats 2.9% every time.',
-          highlight: 'Pact3Fi\'s 0.5% fee is transparent, fixed, and deducted automatically. No hidden charges.',
+          highlight: 'Pactopus\'s 0.5% fee is transparent, fixed, and deducted automatically. No hidden charges.',
         },
       },
       {
@@ -206,10 +206,10 @@ function OnboardingContent() {
           <div className="container-sm" style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎉</div>
             <h1 className="display-md" style={{ marginBottom: '1rem', fontFamily: 'var(--font-display)' }}>
-              You are ready to use <span className="gradient-text-gold">Pact3Fi</span>!
+              You are ready to use <span className="gradient-text-gold">Pactopus</span>!
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
-              You now understand why Pact3Fi exists and how stablecoins can transform your freelance agreements. Let us initialize your first pactum — it takes 30 seconds.
+              You now understand why Pactopus exists and how stablecoins can transform your freelance agreements. Let us initialize your first pactum — it takes 30 seconds.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="onboarding-complete-create-btn">

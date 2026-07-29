@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-interface Pact3FiCopilotProps {
+interface PactopusCopilotProps {
   onFillForm: (data: {
     amount: string;
     currency: 'USDC' | 'EURC';
@@ -19,7 +19,7 @@ interface Pact3FiCopilotProps {
   };
 }
 
-export default function Pact3FiCopilot({ onFillForm, currentForm }: Pact3FiCopilotProps) {
+export default function PactopusCopilot({ onFillForm, currentForm }: PactopusCopilotProps) {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<'idle' | 'parsing' | 'success'>('idle');
   const [logs, setLogs] = useState<string[]>([]);
@@ -33,7 +33,7 @@ export default function Pact3FiCopilot({ onFillForm, currentForm }: Pact3FiCopil
     setLogs([]);
 
     const logSteps = [
-      '⚡ Starting Pact3Fi AI Copilot…',
+      '⚡ Starting Pactopus AI Copilot…',
       '🔍 Analyzing natural language input…',
       '🤖 Parsing intent: CREATE_INVOICE',
       '📦 Extracting invoice parameters…',
@@ -123,7 +123,7 @@ export default function Pact3FiCopilot({ onFillForm, currentForm }: Pact3FiCopil
     const desc = currentForm.description || 'services rendered';
     const client = currentForm.recipientName || 'Client';
 
-    const invoiceUrl = 'https://pact3fi.com/pay/demo-id'; // placeholder URL representing what is generated
+    const invoiceUrl = 'https://pactopus.com/pay/demo-id'; // placeholder URL representing what is generated
 
     return {
       email: {
@@ -141,7 +141,7 @@ export default function Pact3FiCopilot({ onFillForm, currentForm }: Pact3FiCopil
       body: "Stablecoins are digital currencies pegged 1:1 to traditional assets like the US Dollar (USDC) or Euro (EURC). Unlike Bitcoin, they are non-volatile and maintain a stable value.",
       benefits: [
         "Instant settlement: Transactions confirm on the Arc network in less than 1 second.",
-        "6× cheaper: Pact3Fi charges only a 0.5% fee compared to 2.9% + fixed costs for Stripe/PayPal.",
+        "6× cheaper: Pactopus charges only a 0.5% fee compared to 2.9% + fixed costs for Stripe/PayPal.",
         "Non-custodial: Payments flow directly from client to freelancer wallet — no third-party hold.",
         "Global: Clients can pay internationally without bank delays, exchange rate surcharges, or SWIFT fees."
       ]
@@ -245,7 +245,7 @@ export default function Pact3FiCopilot({ onFillForm, currentForm }: Pact3FiCopil
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
           <p className="label" style={{ color: 'var(--accent-purple)', marginBottom: '0.25rem' }}>Client billing communication</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.4 }}>
-            Generate messages to share your payment request. Pact3Fi prepares these automatically using your current invoice details.
+            Generate messages to share your payment request. Pactopus prepares these automatically using your current invoice details.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', overflowY: 'auto', maxHeight: 300, paddingRight: '0.25rem' }}>

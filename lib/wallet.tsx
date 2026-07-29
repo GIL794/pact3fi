@@ -79,7 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (prev.network === network) return prev;
       // When switching networks, disconnect the active session to prevent mixed state
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('pact3fi_wallet');
+        localStorage.removeItem('pactopus_wallet');
       }
       return {
         ...prev,
@@ -161,7 +161,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         const address = accounts[0];
         if (typeof window !== 'undefined') {
-          localStorage.setItem('pact3fi_wallet', JSON.stringify({ type, address, network: 'algorand' }));
+          localStorage.setItem('pactopus_wallet', JSON.stringify({ type, address, network: 'algorand' }));
         }
 
         setState(prev => ({
@@ -185,7 +185,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
 
         if (typeof window !== 'undefined') {
-          localStorage.setItem('pact3fi_wallet', JSON.stringify({ type, address, network: 'algorand' }));
+          localStorage.setItem('pactopus_wallet', JSON.stringify({ type, address, network: 'algorand' }));
         }
 
         setState(prev => ({
@@ -234,7 +234,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const chainId = parseInt(chainIdHex, 16);
 
         if (typeof window !== 'undefined') {
-          localStorage.setItem('pact3fi_wallet', JSON.stringify({ type, address, network: 'arc' }));
+          localStorage.setItem('pactopus_wallet', JSON.stringify({ type, address, network: 'arc' }));
         }
 
         setState(prev => ({
@@ -263,7 +263,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const disconnect = useCallback(() => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('pact3fi_wallet');
+      localStorage.removeItem('pactopus_wallet');
     }
     if (state.walletType === 'pera' && peraWallet) {
       peraWallet.disconnect().catch(() => {});
@@ -308,7 +308,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Auto-reconnect on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem('pact3fi_wallet');
+    const saved = localStorage.getItem('pactopus_wallet');
     if (saved) {
       try {
         const { type, address, network } = JSON.parse(saved);

@@ -1,11 +1,11 @@
-# Pact3Fi — Developer Handover & Architecture Log
+# Pactopus — Developer Handover & Architecture Log
 
-This document provides a technical overview, design decisions, and system specifications for the **Pact3Fi** MVP project, created for the Arc Hackathon (Encode Hub, Shoreditch) on **July 7, 2026**. It serves as a timestamp and guide for future developers onboarding to this codebase.
+This document provides a technical overview, design decisions, and system specifications for the **Pactopus** MVP project, created for the Arc Hackathon (Encode Hub, Shoreditch) on **July 7, 2026**. It serves as a timestamp and guide for future developers onboarding to this codebase.
 
 ---
 
 ## 📅 Log & Timestamp
-- **Project Name:** Pact3Fi (Powered by Arc, owned by Kyrvyn Ltd)
+- **Project Name:** Pactopus (Powered by Arc, owned by Kyrvyn Ltd)
 - **Founder / CEO:** Gabriele Iacopo Langellotto
 - **Created Date:** July 7, 2026, 10:49 AM BST
 - **Release Version:** 0.1.0 (Hackathon MVP)
@@ -25,7 +25,7 @@ This document provides a technical overview, design decisions, and system specif
 ## 📁 File Structure & Architecture
 
 ```
-pact3fi/
+pactopus/
 ├── app/
 │   ├── globals.css           # Token-driven design system and layout styling
 │   ├── layout.tsx            # Root layout with premium fonts (Inter + Space Grotesk) and SEO tags

@@ -35,7 +35,7 @@ function CreateForm() {
   // Subscription status
   const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pact3fi_subscription') as 'free' | 'pro' | 'business' || 'free';
+      return localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business' || 'free';
     }
     return 'free';
   });
@@ -318,7 +318,7 @@ function CreateForm() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
                 <div className="navbar-logo" style={{ marginBottom: '0.25rem', fontSize: '1.125rem' }}>
-                  <img src="/logo.svg" alt="Pact3Fi" style={{ height: '28px', width: 'auto' }} />
+                  <img src="/logo.svg" alt="Pactopus" style={{ height: '28px', width: 'auto' }} />
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Invoice Summary</p>
               </div>
@@ -383,7 +383,7 @@ function CreateForm() {
                 <span>{form.amount || '0.00'} {form.currency}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                <span>Pact3Fi Fee (0.5%)</span>
+                <span>Pactopus Fee (0.5%)</span>
                 <span>-{feeAmount} {form.currency}</span>
               </div>
               <div className="divider" style={{ margin: '0.25rem 0' }} />

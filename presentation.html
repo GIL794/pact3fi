@@ -5,7 +5,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-	<title>Pact3Fi — Arc Hackathon Presentation</title>
+	<title>Pactopus — Arc Hackathon Presentation</title>
 
 	<!-- Reveal.js styles from CDN -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
@@ -18,7 +18,7 @@
 		href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;600&family=Outfit:wght@400;700;800&family=Fira+Code:wght@400;600&display=swap"
 		rel="stylesheet">
 
-	<!-- Theme overrides matching Pact3Fi Premium Color Palette -->
+	<!-- Theme overrides matching Pactopus Premium Color Palette -->
 	<style>
 		:root {
 			--r-background-color: #050506;
@@ -209,7 +209,7 @@
 						style="border: 2px double var(--accent-gold); padding: 3rem 4rem; border-radius: 8px; background: rgba(17, 17, 19, 0.6); backdrop-filter: blur(10px);">
 						<h1
 							style="font-family: 'Cinzel', serif; font-size: 5rem; letter-spacing: 0.18em; color: var(--accent-gold); margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(197, 155, 39, 0.3);">
-							PACT3FI</h1>
+							PACTOPUS</h1>
 						<p
 							style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.25em; color: #1b1bff; margin-bottom: 2rem;">
 							Sovereign Escrow & Billing Network</p>
@@ -261,7 +261,7 @@
 			<section>
 				<div class="slide-container">
 					<div class="roman-header">§ II: The Remedy</div>
-					<h2 class="slide-title">Enter Pact3Fi on Arc L1</h2>
+					<h2 class="slide-title">Enter Pactopus on Arc L1</h2>
 
 					<div class="grid-3">
 						<div class="presentation-card">
@@ -273,7 +273,7 @@
 						<div class="presentation-card">
 							<div class="card-icon">💵</div>
 							<div class="card-title">USDC-as-Gas</div>
-							<p class="card-text">Pact3Fi leverages Arc L1's native gas feature. Payer accounts only need
+							<p class="card-text">Pactopus leverages Arc L1's native gas feature. Payer accounts only need
 								USDC/EURC—no native ETH required.</p>
 						</div>
 						<div class="presentation-card">
@@ -367,14 +367,14 @@
 					<div class="grid-2">
 						<div>
 							<pre><code class="language-typescript">// Vercel AI SDK compatible billing tools
-export const pact3fiAgentTools = {
+export const pactopusAgentTools = {
   createInvoiceTool: tool({
-    description: 'Creates a Pact3Fi invoice, paying 402 fee',
+    description: 'Creates a Pactopus invoice, paying 402 fee',
     parameters: z.object({ amount: z.string(), ... }),
     execute: async (params) => { /* sign fee & POST */ }
   }),
   payInvoiceTool: tool({
-    description: 'Pays Pact3Fi invoice, splitting fee',
+    description: 'Pays Pactopus invoice, splitting fee',
     parameters: z.object({ invoiceId: z.string() }),
     execute: async (params) => { /* sign & payout */ }
   })
@@ -383,7 +383,7 @@ export const pact3fiAgentTools = {
 						<div style="text-align: left;">
 							<p style="font-size: 0.95rem; color: #787880; line-height: 1.7; margin-bottom: 1.5rem;">
 								Equips external LLM-driven agents with standard functions to autonomously interact with
-								Pact3Fi contracts.
+								Pactopus contracts.
 							</p>
 							<ul class="bullet-list" style="margin-top: 0;">
 								<li style="font-size: 0.9rem;"><strong>Fully Programmatic:</strong> Signs and sends
@@ -440,7 +440,7 @@ if (balance > reserveThreshold) {
 						<div class="presentation-card highlighted" style="flex: 1; text-align: center;">
 							<div style="font-size: 3rem; margin-bottom: 0.5rem;">🏆</div>
 							<div class="card-title" style="color: var(--accent-gold) !important; text-align: center;">
-								Pact3Fi Hackathon MVP</div>
+								Pactopus Hackathon MVP</div>
 							<p style="font-size: 0.85rem; color: #787880; line-height: 1.6; margin-top: 0.75rem;">
 								Clean Next.js interface with real-time TanStack auto-polling, dynamic wallet connectors,
 								and on-chain verification.
@@ -459,7 +459,7 @@ if (balance > reserveThreshold) {
 					</div>
 
 					<p style="font-size: 1rem; color: var(--accent-gold); margin-top: 2.5rem; font-weight: bold;">
-						PACT3FI — BOUND BY CODE. SIGNED ON-CHAIN.
+						PACTOPUS — BOUND BY CODE. SIGNED ON-CHAIN.
 					</p>
 				</div>
 			</section>

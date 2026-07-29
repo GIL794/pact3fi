@@ -4,13 +4,13 @@ import { CONTRACTS, PLATFORM_WALLET, ERC20_ABI, parseTokenAmount, PLATFORM_FEE_B
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
 
-export const pact3fiAgentTools = {
+export const pactopusAgentTools = {
   /**
    * Tool to create an invoice autonomously.
    * If the endpoint requires HTTP 402 nanopayment, the agent wallet signs and pays the fee.
    */
   createInvoiceTool: {
-    description: 'Creates a stablecoin invoice request on Pact3Fi, paying the HTTP 402 fee autonomously on Arc L1.',
+    description: 'Creates a stablecoin invoice request on Pactopus, paying the HTTP 402 fee autonomously on Arc L1.',
     parameters: z.object({
       amount: z.string().describe('The invoice amount (e.g. "250.00")'),
       currency: z.enum(['USDC', 'EURC']).describe('Token currency type'),
@@ -18,7 +18,7 @@ export const pact3fiAgentTools = {
       recipientAddress: z.string().describe('Wallet address to receive funds'),
       recipientName: z.string().optional().describe('Payee name'),
       agentPrivateKey: z.string().describe('Private key of the agent wallet to sign nanopayments'),
-      apiBaseUrl: z.string().optional().default('http://localhost:3000').describe('Pact3Fi API base URL'),
+      apiBaseUrl: z.string().optional().default('http://localhost:3000').describe('Pactopus API base URL'),
     }),
     execute: async ({ amount, currency, description, recipientAddress, recipientName, agentPrivateKey, apiBaseUrl }: any) => {
       try {
@@ -38,7 +38,7 @@ export const pact3fiAgentTools = {
           const assetAddress = payDetails.paymentAsset || CONTRACTS.USDC;
           const payAmount = payDetails.paymentAmount || '0.05';
 
-          console.log(`[Pact3Fi Agent] HTTP 402 Received. Paying ${payAmount} USDC nanopayment on Arc to ${target}...`);
+          console.log(`[Pactopus Agent] HTTP 402 Received. Paying ${payAmount} USDC nanopayment on Arc to ${target}...`);
 
           // Setup Ethers provider and signer
           const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
@@ -50,11 +50,11 @@ export const pact3fiAgentTools = {
 
           // Submit the transfer transaction
           const tx = await token.transfer(target, rawAmount);
-          console.log(`[Pact3Fi Agent] Nanopayment transaction submitted: ${tx.hash}`);
+          console.log(`[Pactopus Agent] Nanopayment transaction submitted: ${tx.hash}`);
           
           // Wait for block finality
           await tx.wait();
-          console.log(`[Pact3Fi Agent] Nanopayment transaction confirmed.`);
+          console.log(`[Pactopus Agent] Nanopayment transaction confirmed.`);
 
           // 3. Retry invoice creation with transaction hash
           const retryRes = await fetch(`${apiBaseUrl}/api/v2/invoices`, {
@@ -104,11 +104,11 @@ export const pact3fiAgentTools = {
    * Tool to pay a pending invoice, executing both net amount and fee transfers on-chain.
    */
   payInvoiceTool: {
-    description: 'Pays a Pact3Fi invoice autonomously, routing both recipient payout and platform fee on-chain.',
+    description: 'Pays a Pactopus invoice autonomously, routing both recipient payout and platform fee on-chain.',
     parameters: z.object({
       invoiceId: z.string().describe('The ID of the invoice to pay'),
       agentPrivateKey: z.string().describe('Private key of the payer agent wallet'),
-      apiBaseUrl: z.string().optional().default('http://localhost:3000').describe('Pact3Fi API base URL'),
+      apiBaseUrl: z.string().optional().default('http://localhost:3000').describe('Pactopus API base URL'),
     }),
     execute: async ({ invoiceId, agentPrivateKey, apiBaseUrl }: any) => {
       try {
@@ -132,15 +132,15 @@ export const pact3fiAgentTools = {
         const feeRaw = (rawAmount * BigInt(PLATFORM_FEE_BPS)) / BigInt(10000);
         const netRaw = rawAmount - feeRaw;
 
-        console.log(`[Pact3Fi Agent] Transferring net amount ${ethers.formatUnits(netRaw, 6)} ${invoice.currency} to payee...`);
+        console.log(`[Pactopus Agent] Transferring net amount ${ethers.formatUnits(netRaw, 6)} ${invoice.currency} to payee...`);
         // Transfer 1: Payee payout
         const payoutTx = await token.transfer(invoice.recipientAddress, netRaw);
-        console.log(`[Pact3Fi Agent] Payout Tx Hash: ${payoutTx.hash}`);
+        console.log(`[Pactopus Agent] Payout Tx Hash: ${payoutTx.hash}`);
 
-        console.log(`[Pact3Fi Agent] Transferring fee amount ${ethers.formatUnits(feeRaw, 6)} ${invoice.currency} to platform...`);
+        console.log(`[Pactopus Agent] Transferring fee amount ${ethers.formatUnits(feeRaw, 6)} ${invoice.currency} to platform...`);
         // Transfer 2: Platform fee transfer
         const feeTx = await token.transfer(PLATFORM_WALLET, feeRaw);
-        console.log(`[Pact3Fi Agent] Fee Tx Hash: ${feeTx.hash}`);
+        console.log(`[Pactopus Agent] Fee Tx Hash: ${feeTx.hash}`);
 
         // Wait for finalities
         await payoutTx.wait();

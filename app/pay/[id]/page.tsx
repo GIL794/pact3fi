@@ -248,7 +248,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem' }}>
           <div>
             <div className="navbar-logo" style={{ fontSize: '1.125rem', marginBottom: '0.25rem' }}>
-              <img src="/logo.svg" alt="Pact3Fi" style={{ height: '28px', width: 'auto' }} />
+              <img src="/logo.svg" alt="Pactopus" style={{ height: '28px', width: 'auto' }} />
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
               {new Date(invoice.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -383,7 +383,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
                 <span>You release</span><span>{parseFloat(invoice.amount).toLocaleString()} {invoice.currency}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                <span>Pact3Fi Fee (0.5%)</span><span>-{feeAmount} {invoice.currency}</span>
+                <span>Pactopus Fee (0.5%)</span><span>-{feeAmount} {invoice.currency}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: 'var(--accent-gold)' }}>
                 <span>Recipient receives</span><span>{parseFloat(netAmount).toLocaleString()} {invoice.currency}</span>
