@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# documentation - not pushed to GitHub (kept locally only)
+*.md
+!node_modules/**/*.md
+!**/node_modules/**/*.md
+
+# local persistent artifacts
+/db/
+/.env.local
+.env.local
+package-lock-local.json

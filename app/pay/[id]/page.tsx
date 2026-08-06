@@ -8,6 +8,7 @@ import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { CURRENCY_CONFIG, ARC_CHAIN, getTxLink, parseTokenAmount, PLATFORM_FEE_BPS, PLATFORM_WALLET } from '@/lib/arc';
 import { getAlgoTxLink } from '@/lib/algo';
+import { recordMilestone } from '@/lib/milestones';
 import type { Invoice } from '@/lib/store';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -19,7 +20,7 @@ interface PayPageProps {
 
 function PaymentContent({ invoiceId }: { invoiceId: string }) {
   const queryClient = useQueryClient();
-  const { address, isConnected, isWrongNetwork, switchNetwork, network, setNetwork, walletType } = useWallet();
+  const { address, isConnected, isWrongNetwork, switchNetwork, network, setNetwork } = useWallet();
   const searchParams = useSearchParams();
   const isCreator = searchParams.get('created') === 'true';
 
@@ -63,7 +64,8 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
   // TanStack Mutation to execute invoice payments
   const payMutation = useMutation({
     mutationFn: async () => {
-      if (!invoice || !address || !isConnected) throw new Error('Prerequisites missing');
+      if (!invoice) throw new Error('We could not load this invoice. Please refresh and try again.');
+      if (!isConnected || !address) throw new Error('Please connect a wallet to pay this invoice.');
       
       const isAlgo = network === 'algorand';
       const planAmount = parseFloat(invoice.amount);
@@ -73,7 +75,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
       if (isAlgo) {
         const algo = (window as any).algorand || (window as any).algo;
         if (!algo) {
-          throw new Error('Algorand Wallet extension (Pera or Kibisis) not detected. Please install it.');
+          throw new Error('No Algorand wallet found. Install Pera Wallet (or an injected Algorand wallet) and try again.');
         }
 
         const assetId = invoice.currency === 'USDC' ? 10458941 : 230190169;
@@ -105,7 +107,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
 
       // EVM
       const provider = (window as any).ethereum;
-      if (!provider) throw new Error('No wallet provider found');
+      if (!provider) throw new Error('No Arc/EVM wallet found. Install MetaMask (or use WalletConnect) and try again.');
 
       if (isWrongNetwork) {
         await switchNetwork();
@@ -170,6 +172,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
         queryClient.invalidateQueries({ queryKey: ['dashboardStats', network] });
 
+        recordMilestone('first_payment_completed');
         setStep('paid');
       } catch (err: any) {
         setError(err.message || 'Verification failed');
@@ -219,8 +222,8 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
       {isCreator && (
         <div style={{
           padding: '1rem 1.25rem',
-          background: 'rgba(197,155,39,0.08)',
-          border: '1px solid rgba(197,155,39,0.25)',
+          background: 'rgba(var(--brand-rgb), 0.10)',
+          border: '1px solid rgba(var(--brand-rgb), 0.28)',
           borderRadius: 'var(--radius-lg)',
           marginBottom: '1.5rem',
           display: 'flex',
@@ -230,7 +233,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         }}>
           <span style={{ fontSize: '1.25rem' }}>⚖️</span>
           <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 600, marginBottom: '0.125rem' }}>Invoice successfully created!</p>
+            <p style={{ fontWeight: 600, marginBottom: '0.125rem' }}>Invoice ready!</p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Share this link with your client to get paid.</p>
           </div>
           <button
@@ -260,7 +263,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         </div>
 
         {/* Amount */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem', padding: '1.5rem', background: 'rgba(197,155,39,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(197,155,39,0.2)' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem', padding: '1.5rem', background: 'rgba(var(--brand-rgb), 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(var(--brand-rgb), 0.22)' }}>
           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{currencyEmoji} Invoice Amount</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '3.5rem', fontWeight: 800, color: 'var(--accent-gold)', lineHeight: 1 }}>
             {parseFloat(invoice.amount).toLocaleString()}
@@ -307,8 +310,8 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
           <div style={{
             textAlign: 'center',
             padding: '2.5rem',
-            background: 'rgba(16,185,129,0.06)',
-            border: '1px solid rgba(16,185,129,0.2)',
+            background: 'rgba(var(--success-rgb), 0.10)',
+            border: '1px solid rgba(var(--success-rgb), 0.24)',
             borderRadius: 'var(--radius-xl)',
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
@@ -317,7 +320,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
                 <path d="M20 32 L28 40 L44 24" stroke="var(--accent-green)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="check-anim" />
               </svg>
             </div>
-            <h3 className="heading-lg" style={{ color: 'var(--accent-green)', marginBottom: '0.5rem' }}>Payment Successful!</h3>
+            <h3 className="heading-lg" style={{ color: 'var(--success)', marginBottom: '0.5rem' }}>Payment received!</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
               {parseFloat(netAmount).toLocaleString()} {invoice.currency} paid successfully on the {isAlgo ? 'Algorand' : 'Arc'} network.
             </p>
@@ -341,6 +344,9 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         ) : (
           <div className="card" style={{ borderTop: '3px solid var(--accent-red)' }}>
             <h3 className="heading-md" style={{ marginBottom: '1.5rem', fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>Pay Invoice</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+              Pactopus is serving the {isAlgo ? 'Algorand' : 'Arc'} version of this payment screen and has already adapted its primary colors to match that chain.
+            </p>
 
             {/* Steps */}
             <div className="step-list" style={{ marginBottom: '2rem' }}>
@@ -349,7 +355,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
                   {isConnected ? '✓' : 'I'}
                 </div>
                 <div className="step-content">
-                  <div className="step-title">Connect your credential</div>
+                  <div className="step-title">Connect your wallet</div>
                   <div className="step-desc">
                     {isAlgo ? 'Pera Wallet or MyAlgo' : 'MetaMask, Coinbase Wallet, or WalletConnect'}
                   </div>
@@ -362,7 +368,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
                 <div className="step-content">
                   <div className="step-title">Confirm Payment in Wallet</div>
                   <div className="step-desc">
-                    {isAlgo ? 'Approve the asset transfer signature' : 'Approve the ledger signature — gas cost ~$0.01'}
+                    {isAlgo ? 'Approve the transfer in your wallet' : 'Approve the transfer in your wallet (small network fee may apply)'}
                   </div>
                 </div>
               </div>
@@ -371,14 +377,14 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
                   {isPaid ? '✓' : 'III'}
                 </div>
                 <div className="step-content">
-                  <div className="step-title">Instant Escrow Release</div>
-                  <div className="step-desc">Funds are sent instantly on the {isAlgo ? 'Algorand' : 'Arc'} network</div>
+                  <div className="step-title">Done and delivered</div>
+                  <div className="step-desc">Funds arrive on {isAlgo ? 'Algorand' : 'Arc'} and the invoice updates automatically</div>
                 </div>
               </div>
             </div>
 
             {/* Fee summary */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+            <div style={{ background: 'var(--field-bg)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1.5rem', fontSize: '0.875rem', border: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                 <span>You release</span><span>{parseFloat(invoice.amount).toLocaleString()} {invoice.currency}</span>
               </div>

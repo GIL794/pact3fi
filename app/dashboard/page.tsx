@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
+import { recordMilestone } from '@/lib/milestones';
 import type { Invoice } from '@/lib/store';
 import { getAlgoTxLink } from '@/lib/algo';
 import { getTxLink } from '@/lib/arc';
@@ -32,6 +33,11 @@ function DashboardContent() {
   });
 
   const isAlgo = network === 'algorand';
+
+  useEffect(() => {
+    if (!isConnected) return;
+    recordMilestone('first_dashboard_visit');
+  }, [isConnected]);
 
   // TanStack Query with dynamic caching & auto-polling every 10s
   const { data: stats, isLoading, refetch } = useQuery<DashboardStats>({
@@ -66,12 +72,12 @@ function DashboardContent() {
     return (
       <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
         <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🔌</div>
-        <h2 className="heading-lg" style={{ marginBottom: '0.75rem' }}>Connect your wallet</h2>
+        <h2 className="heading-lg" style={{ marginBottom: '0.75rem' }}>Connect a wallet to continue</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-          Connect your wallet to view your Pactopus dashboard and payment history.
+          Once you’re connected, you’ll see your invoices, payments, and balances here.
         </p>
         <button className="btn btn-primary btn-lg" onClick={() => setShowWalletModal(true)} id="dashboard-connect-btn">
-          Connect Wallet
+          Connect wallet
         </button>
         {showWalletModal && <WalletModal onClose={() => setShowWalletModal(false)} />}
       </div>
@@ -85,28 +91,28 @@ function DashboardContent() {
         <div>
           <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.25rem' }}>Overview</p>
           <h1 className="display-md" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontFamily: 'var(--font-display)' }}>
-            Invoices & Pacts ({isAlgo ? 'Algorand' : 'Arc L1'})
+            Your invoices ({isAlgo ? 'Algorand' : 'Arc'})
             <span className={`badge ${subTier === 'free' ? 'badge-cyan' : subTier === 'pro' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>
-              {subTier} Plan
+              {subTier} plan
             </span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.875rem', marginTop: '0.375rem', wordBreak: 'break-all' }}>
-            Connected Wallet: {address}
+            Wallet: {address}
           </p>
         </div>
         <Link href="/create" className="btn btn-primary" id="dashboard-create-btn">
-          Create Invoice
+          New invoice
         </Link>
       </div>
 
       {/* Balance tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div className="stat-card" style={{ border: '1px solid rgba(16,185,129,0.2)' }}>
+        <div className="stat-card" style={{ border: '1px solid rgba(var(--success-rgb), 0.28)' }}>
           <div className="stat-label">💵 USDC Balance</div>
           <div className="stat-value" style={{ color: 'var(--accent-green)', marginTop: '0.5rem' }}>{usdcBalance}</div>
           <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>US Dollar Coin</div>
         </div>
-        <div className="stat-card" style={{ border: '1px solid rgba(245,158,11,0.2)' }}>
+        <div className="stat-card" style={{ border: '1px solid rgba(var(--brand-rgb), 0.28)' }}>
           <div className="stat-label">💶 EURC Balance</div>
           <div className="stat-value" style={{ color: 'var(--accent-gold)', marginTop: '0.5rem' }}>{eurcBalance}</div>
           <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Euro Coin</div>
@@ -122,20 +128,22 @@ function DashboardContent() {
           <div className="stat-label">📋 Total Invoices</div>
           <div className="stat-value" style={{ marginTop: '0.5rem' }}>{isLoading ? '—' : stats?.totalInvoices}</div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-            <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>{stats?.paidInvoices} Released</span>
+            <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>{stats?.paidInvoices} Paid</span>
             <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>{stats?.pendingInvoices} Pending</span>
           </div>
         </div>
       </div>
 
       {/* Network status */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1.25rem', background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 'var(--radius-md)', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1.25rem', background: 'var(--field-bg)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-green)', display: 'inline-block', boxShadow: '0 0 8px var(--accent-green)' }} />
         <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
           Connected to {isAlgo ? 'Algorand Testnet' : 'Arc Testnet'}
         </span>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-          {isAlgo ? 'Pure Proof-of-Stake · 1.5s block latency · Low transaction fees' : 'Chain ID: 5042002 · USDC-as-gas · Sub-second finality'}
+          {isAlgo
+            ? 'Quick blocks · Smooth confirmations · Colors matched to Algorand'
+            : 'Fast finality · Simple fees · Colors matched to Arc'}
         </span>
         <button className="btn btn-secondary btn-sm" onClick={handleRefresh} style={{ marginLeft: 'auto' }}>
           ↻ Refresh data
@@ -145,9 +153,9 @@ function DashboardContent() {
       {/* Invoices table */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h2 className="heading-lg" style={{ fontFamily: 'var(--font-display)' }}>Recent Invoices</h2>
+          <h2 className="heading-lg" style={{ fontFamily: 'var(--font-display)' }}>Recent invoices</h2>
           <Link href="/create" className="btn btn-secondary btn-sm" id="table-create-btn">
-            Create Invoice
+            New invoice
           </Link>
         </div>
 
@@ -161,9 +169,9 @@ function DashboardContent() {
           <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
             <p style={{ fontSize: '2rem', marginBottom: '1rem' }}>📭</p>
             <h3 className="heading-md" style={{ marginBottom: '0.5rem' }}>No active invoices</h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Create your first invoice to get paid securely on-chain.</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Create one, share the link, and get paid.</p>
             <Link href="/create" className="btn btn-primary" id="empty-state-create-btn">
-              Create Invoice
+              Create an invoice
             </Link>
           </div>
         ) : (
@@ -247,11 +255,11 @@ function DashboardContent() {
       </div>
 
       {/* Business model callout */}
-      <div className="card" style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', background: 'rgba(58,7,34,0.08)', border: '1px solid rgba(197,155,39,0.2)' }}>
+      <div className="card" style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', background: 'rgba(var(--brand-tertiary-rgb), 0.06)', border: '1px solid rgba(var(--brand-rgb), 0.22)' }}>
         <div style={{ flex: 1 }}>
           <h3 className="heading-md" style={{ marginBottom: '0.375rem', fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>💡 Transparent Fees</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Pactopus charges a 0.5% fee on paid invoices — 6× cheaper than Stripe (2.9%). On a 5,000 USDC monthly volume, you save an extra 1,440 USDC yearly.
+            Pactopus takes a simple 0.5% platform fee on paid invoices. The dashboard stays chain-aware too, switching its colors in milliseconds to match Arc or Algorand.
           </p>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>

@@ -36,7 +36,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: "Great, you're ahead of the game!",
           body: 'Stablecoins like USDC and EURC are pegged 1:1 to fiat currencies — so 1 USDC always equals $1, and 1 EURC always equals €1. No price volatility, no surprises.',
-          highlight: 'Pactopus uses USDC and EURC — the two most trusted stablecoins, issued by Circle.',
+          highlight: 'Pactopus uses USDC and EURC - trusted stablecoins that move through an interface tailored to the chain your client is using.',
         },
       },
       {
@@ -46,7 +46,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: 'Good news — stablecoins are simpler than you think!',
           body: 'Unlike Bitcoin or Ethereum, stablecoins don\'t go up and down in price. USDC is always $1. EURC is always €1. Think of them as "digital dollars" or "digital euros" that move at internet speed.',
-          highlight: 'They combine the stability of your bank account with the speed of the internet.',
+          highlight: 'They combine the stability of your bank account with the speed of the internet, and Pactopus wraps them in a chain-aware experience.',
         },
       },
       {
@@ -56,7 +56,7 @@ const QUESTIONS: Question[] = [
         response: {
           heading: 'Welcome — you\'re in exactly the right place!',
           body: 'Stablecoins are a type of digital currency that are designed to stay stable in value. USDC = 1 US Dollar, always. EURC = 1 Euro, always. You can send them anywhere in the world, instantly, for almost zero cost.',
-          highlight: 'No price risk. No bank delays. Just fast, stable money — accessible to anyone.',
+          highlight: 'No price risk. No bank delays. Just fast, stable money - accessible to anyone.',
         },
       },
     ],
@@ -81,7 +81,7 @@ const QUESTIONS: Question[] = [
         sub: 'A few times a year',
         emoji: '📅',
         response: {
-          heading: 'Every pact matters — even occasional ones!',
+          heading: 'Every invoice matters — even occasional ones!',
           body: 'When you do send an invoice, Pactopus means you receive payment the same day — not in a week. Your client saves on FX fees too, especially if they\'re paying in a different currency.',
           highlight: 'The smaller the invoice, the more a 0.5% fee beats traditional 2.9% + fixed costs.',
         },
@@ -92,7 +92,7 @@ const QUESTIONS: Question[] = [
         emoji: '🌱',
         response: {
           heading: 'Starting on the right foot — smart move!',
-          body: 'Setting up stablecoin payments from day one means you\'re ready for global clients without friction. Many modern businesses prefer crypto Pacts for speed and accounting clarity.',
+          body: 'Setting up stablecoin payments from day one means you\'re ready for global clients without friction. Many modern businesses prefer on-chain invoices for speed and clean receipts.',
           highlight: 'Start with Pactopus, and you\'ll never have to worry about "when does the bank transfer arrive?"',
         },
       },
@@ -209,7 +209,7 @@ function OnboardingContent() {
               You are ready to use <span className="gradient-text-gold">Pactopus</span>!
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
-              You now understand why Pactopus exists and how stablecoins can transform your freelance agreements. Let us initialize your first pactum — it takes 30 seconds.
+              You now understand why Pactopus exists, how stablecoins can transform your freelance agreements, and how the octopus-inspired workspace adapts to Arc or Algorand in milliseconds. Let us create your first invoice - it takes about 30 seconds.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="onboarding-complete-create-btn">
@@ -264,7 +264,7 @@ function OnboardingContent() {
           {/* Progress bar */}
           <div style={{ marginBottom: '3rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              <span>Quick Setup</span>
+              <span>Octopus Setup</span>
               <span>Step {currentQ + 1} of {QUESTIONS.length}</span>
             </div>
             <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: '2px' }}>
@@ -320,7 +320,7 @@ function OnboardingContent() {
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
                     {selectedOpt.response.body}
                   </p>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start', padding: '1rem', background: 'rgba(197,155,39,0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(197,155,39,0.2)', color: 'var(--accent-gold)', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start', padding: '1rem', background: 'rgba(var(--brand-rgb), 0.10)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(var(--brand-rgb), 0.22)', color: 'var(--accent-gold)', fontSize: '0.875rem', fontWeight: 500 }}>
                     <span style={{ fontSize: '1.125rem' }}>💡</span>
                     <div>{selectedOpt.response.highlight}</div>
                   </div>
@@ -330,7 +330,7 @@ function OnboardingContent() {
                   <div style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.5 }}>👈</div>
                   <h3 className="heading-md" style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Select an Answer</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                    Select an option on the left to see dynamic, educational explainer content adapted to your experience level.
+                    Select an option on the left to see dynamic explainer content adapted to your experience level and the Pactopus payment model.
                   </p>
                 </div>
               )}

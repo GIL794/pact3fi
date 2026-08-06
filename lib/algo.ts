@@ -1,6 +1,7 @@
 // Algorand configuration and helpers
 // USDC Asset ID: 10458941 (Testnet), 31566704 (Mainnet)
 // EURC Asset ID: 230190169 (Testnet), 227839352 (Mainnet)
+// Pactopus maps this workspace to the documented Algorand palette tokens so the UI matches the active chain branding.
 
 export const ALGO_NETWORKS = {
   testnet: {

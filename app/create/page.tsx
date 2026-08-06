@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { isValidAlgorandAddress } from '@/lib/algo';
+import { recordMilestone } from '@/lib/milestones';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type Currency = 'USDC' | 'EURC';
@@ -68,20 +69,20 @@ function CreateForm() {
   const validate = (): boolean => {
     const newErrors: Partial<FormData> = {};
     if (isBlocked) {
-      newErrors.description = 'Limit exceeded. Please upgrade your subscription tier.';
+      newErrors.description = 'You’ve hit the Free plan limit. Upgrade to keep creating invoices.';
       return false;
     }
-    if (!form.amount || parseFloat(form.amount) <= 0) newErrors.amount = 'Enter a valid amount';
-    if (!form.description || form.description.trim().length < 3) newErrors.description = 'Describe your work (min. 3 chars)';
+    if (!form.amount || parseFloat(form.amount) <= 0) newErrors.amount = 'Add an amount greater than 0';
+    if (!form.description || form.description.trim().length < 3) newErrors.description = 'Add a short description (at least 3 characters)';
     
     // Address validation based on current network mode
     if (network === 'arc') {
       if (!form.recipientAddress || !form.recipientAddress.startsWith('0x') || form.recipientAddress.length !== 42) {
-        newErrors.recipientAddress = 'Enter a valid 0x wallet address (42 chars)';
+        newErrors.recipientAddress = 'Paste a valid Arc/EVM wallet address (starts with 0x)';
       }
     } else {
       if (!isValidAlgorandAddress(form.recipientAddress)) {
-        newErrors.recipientAddress = 'Enter a valid Algorand wallet address (58 uppercase chars)';
+        newErrors.recipientAddress = 'Paste a valid Algorand wallet address';
       }
     }
     
@@ -104,6 +105,7 @@ function CreateForm() {
     onSuccess: (invoice) => {
       // Invalidate the stats query so it forces reload of counts on redirect
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', network] });
+      recordMilestone('first_invoice_created');
       router.push(`/pay/${invoice.id}?created=true`);
     },
     onError: (err: any) => {
@@ -129,11 +131,11 @@ function CreateForm() {
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
         {/* Tier status banner */}
-        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ fontSize: '1.25rem' }}>🛡️</span>
             <div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Current Plan ({isAlgo ? 'Algorand' : 'Arc L1'})</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Your plan ({isAlgo ? 'Algorand' : 'Arc'})</div>
               <div style={{ fontWeight: 700, fontSize: '0.9375rem', textTransform: 'uppercase' }} className="gradient-text-gold">
                 {subTier} Tier
               </div>
@@ -142,12 +144,10 @@ function CreateForm() {
           <div>
             {subTier === 'free' ? (
               <span className="badge badge-cyan" style={{ border: '1px solid var(--border)' }}>
-                Usage: {invoiceCount} of 5 Invoices
+                {invoiceCount} / 5 invoices
               </span>
             ) : (
-              <span className="badge badge-green">
-                ✓ Unlimited Invoices Unlocked
-              </span>
+              <span className="badge badge-green">✓ Unlimited invoices</span>
             )}
           </div>
         </div>
@@ -157,7 +157,7 @@ function CreateForm() {
           {/* Amount + Currency */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label className="input-label" style={{ marginBottom: '0.625rem', display: 'block' }}>
-              Invoice Amount
+              Amount
             </label>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
@@ -198,7 +198,7 @@ function CreateForm() {
           {/* Description */}
           <div className="input-group" style={{ marginBottom: '1.5rem' }}>
             <label className="input-label" htmlFor="invoice-description">
-              Description / Deliverables
+              What’s this for?
             </label>
             <textarea
               id="invoice-description"
@@ -215,7 +215,7 @@ function CreateForm() {
           {/* Your name */}
           <div className="input-group" style={{ marginBottom: '1.5rem' }}>
             <label className="input-label" htmlFor="invoice-recipient-name">
-              Your Name / Company <span style={{ color: 'var(--text-secondary)' }}>(optional)</span>
+              Your name (optional)
             </label>
             <input
               id="invoice-recipient-name"
@@ -230,7 +230,7 @@ function CreateForm() {
           {/* Wallet Address */}
           <div className="input-group" style={{ marginBottom: '2rem' }}>
             <label className="input-label" htmlFor="invoice-wallet-address" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Your Wallet Address (Where you get paid) <span style={{ color: 'var(--accent-red)' }}>*</span></span>
+              <span>Where should the money go? <span style={{ color: 'var(--accent-red)' }}>*</span></span>
               {isConnected && address && (
                 <button
                   type="button"
@@ -246,7 +246,7 @@ function CreateForm() {
               id="invoice-wallet-address"
               type="text"
               className="input"
-              placeholder={isAlgo ? "A-Z2-7 (58 characters uppercase)..." : "0x..."}
+              placeholder={isAlgo ? "Paste your Algorand address…" : "Paste your 0x address…"}
               value={form.recipientAddress}
               onChange={e => setForm(f => ({ ...f, recipientAddress: e.target.value }))}
               style={{
@@ -261,10 +261,10 @@ function CreateForm() {
             {!isConnected && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                  Don&apos;t have a wallet yet?
+                  Need a wallet?
                 </p>
                 <button type="button" onClick={() => setShowWalletModal(true)} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem' }}>
-                  Connect wallet
+                  Pick a wallet
                 </button>
               </div>
             )}
@@ -277,9 +277,9 @@ function CreateForm() {
               </button>
               <div className="tooltip" style={{ whiteSpace: 'normal', maxWidth: 280, textAlign: 'left' }}>
                 {isAlgo ? (
-                  "Your Algorand wallet address is a 58-character uppercase sequence of letters and numbers (A-Z, 2-7). Clients will transfer stablecoins directly to this address."
+                  "This is your receiving address on Algorand. When someone pays, the stablecoins go straight here."
                 ) : (
-                  "Your wallet address is like your bank account number for stablecoins. It starts with \"0x\" followed by 40 characters. Your clients will send payment to this address."
+                  "This is your receiving address on Arc/EVM. When someone pays, the stablecoins go straight here."
                 )}
               </div>
             </div>
@@ -288,15 +288,15 @@ function CreateForm() {
           {isBlocked && (
             <div style={{
               padding: '1rem',
-              background: 'rgba(122, 0, 16, 0.08)',
-              border: '1px solid rgba(122, 0, 16, 0.2)',
+              background: 'rgba(var(--danger-rgb), 0.10)',
+              border: '1px solid rgba(var(--danger-rgb), 0.22)',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--accent-red)',
+              color: 'var(--danger)',
               fontSize: '0.875rem',
               marginBottom: '1.5rem',
               lineHeight: 1.5
             }}>
-              ⚠️ <strong>Limit reached:</strong> You have created <strong>{invoiceCount}</strong> Invoices under your <strong>Free Tier</strong> (5 Invoice limit). Upgrade to Pro on the homepage to unlock unlimited Invoices.
+              ⚠️ <strong>You’ve used all 5 Free invoices.</strong> Upgrade on the homepage to unlock unlimited invoices.
             </div>
           )}
 
@@ -306,13 +306,13 @@ function CreateForm() {
             disabled={createMutation.isPending || isBlocked}
             id="create-invoice-submit-btn"
           >
-            {createMutation.isPending ? 'Creating Invoice…' : isBlocked ? '🔒 Upgrade to Unlock' : 'Create Invoice'}
+            {createMutation.isPending ? 'Creating your invoice…' : isBlocked ? '🔒 Upgrade to keep going' : 'Create invoice'}
           </button>
         </form>
 
         {/* Live Preview */}
         <div>
-          <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '1rem' }}>Invoice preview</p>
+          <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '1rem' }}>Preview</p>
 
           <div className="invoice-preview" style={{ borderTop: '3px solid var(--accent-gold)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -320,7 +320,7 @@ function CreateForm() {
                 <div className="navbar-logo" style={{ marginBottom: '0.25rem', fontSize: '1.125rem' }}>
                   <img src="/logo.svg" alt="Pactopus" style={{ height: '28px', width: 'auto' }} />
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Invoice Summary</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Quick summary</p>
               </div>
               <span className={`badge ${form.currency === 'USDC' ? 'badge-green' : 'badge-gold'}`}>
                 {form.currency}
@@ -379,11 +379,11 @@ function CreateForm() {
             {/* Fee breakdown */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8125rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                <span>Invoice Amount</span>
+                <span>Total</span>
                 <span>{form.amount || '0.00'} {form.currency}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                <span>Pactopus Fee (0.5%)</span>
+                <span>Pactopus fee (0.5%)</span>
                 <span>-{feeAmount} {form.currency}</span>
               </div>
               <div className="divider" style={{ margin: '0.25rem 0' }} />
@@ -447,12 +447,12 @@ export default function CreatePage() {
           <div className="container-md">
             {/* Header */}
             <div style={{ marginBottom: '2.5rem' }}>
-              <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.5rem' }}>§ I: NEW INVOICE</p>
+              <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.5rem' }}>New invoice</p>
               <h1 className="display-md" style={{ marginBottom: '0.75rem', fontFamily: 'var(--font-display)' }}>
-                Create Invoice
+                Create an invoice
               </h1>
               <p style={{ color: 'var(--text-secondary)' }}>
-                Enter the details of your work. Once created, you will get a secure payment link to share with your client.
+                Add the basics, preview it on the right, then share the link to get paid.
               </p>
             </div>
 

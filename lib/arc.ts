@@ -2,6 +2,7 @@
 // Chain ID: 5042002 (Arc Testnet)
 // USDC-as-gas: native feature
 // Sub-second finality via Malachite consensus
+// Pactopus maps this workspace to its Arc palette so the UI matches Arc branding.
 
 export const ARC_CHAIN = {
   id: 5042002,

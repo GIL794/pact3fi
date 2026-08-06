@@ -14,6 +14,10 @@ function Particles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (reducedMotion) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -26,8 +30,13 @@ function Particles() {
     resize();
     window.addEventListener('resize', resize);
 
+    const styles = getComputedStyle(document.documentElement);
+    const brand = styles.getPropertyValue('--brand-rgb').trim() || '255, 182, 72';
+    const secondary = styles.getPropertyValue('--brand-secondary-rgb').trim() || '224, 90, 79';
+    const tertiary = styles.getPropertyValue('--brand-tertiary-rgb').trim() || '64, 32, 58';
+
     const particles: { x: number; y: number; vx: number; vy: number; r: number; alpha: number; color: string }[] = [];
-    const colors = ['rgba(197,155,39,', 'rgba(122,0,16,', 'rgba(58,7,34,'];
+    const colors = [`rgba(${brand},`, `rgba(${secondary},`, `rgba(${tertiary},`];
 
     for (let i = 0; i < 60; i++) {
       particles.push({
@@ -66,7 +75,7 @@ function Particles() {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(197,155,39,${0.06 * (1 - dist / 100)})`;
+            ctx.strokeStyle = `rgba(${brand},${0.06 * (1 - dist / 100)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -104,13 +113,13 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
     mutationFn: async () => {
       if (!isConnected) {
         setShowWalletModal(true);
-        throw new Error('Wallet not connected');
+        throw new Error('Please connect a wallet to continue.');
       }
 
       if (network === 'algorand') {
         const planAmountUSDC = plan === 'pro' ? 15 : 50;
         const algo = (window as any).algorand || (window as any).algo;
-        if (!algo) throw new Error('Algorand Wallet provider extension not detected');
+        if (!algo) throw new Error('No Algorand wallet found. Install Pera Wallet (or an injected Algorand wallet) and try again.');
 
         const txParams = {
           from: address,
@@ -129,7 +138,7 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
       }
 
       const provider = (window as any).ethereum;
-      if (!provider) throw new Error('No wallet provider found');
+      if (!provider) throw new Error('No Arc/EVM wallet found. Install MetaMask (or use WalletConnect) and try again.');
 
       const planAmountUSDC = plan === 'pro' ? '15.0' : '50.0';
       const config = CURRENCY_CONFIG.USDC;
@@ -169,18 +178,18 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
         });
         const data2 = await res.json();
         if (!res.ok) {
-          throw new Error(data2.error || 'Server validation failed');
+          throw new Error(data2.error || 'We could not confirm that payment. Please try again.');
         }
 
         localStorage.setItem('pactopus_subscription', plan);
         setStep('success');
       } catch (err: any) {
-        setError(err.message || 'Escrow confirmation failed');
+        setError(err.message || 'We couldn’t confirm that payment. Please try again.');
         setStep('error');
       }
     },
     onError: (err: any) => {
-      if (err.message === 'Wallet not connected') return; // Handled by opening modal
+      if (err.message === 'Please connect a wallet to continue.') return;
       setError(err.message || 'Transaction failed');
       setStep('error');
     }
@@ -246,7 +255,7 @@ function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModa
         {step === 'error' && (
           <div>
             <div style={{ color: 'var(--accent-red)', fontSize: '2.5rem', textAlign: 'center', marginBottom: '1rem' }}>⚠️</div>
-            <h4 className="heading-md" style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Payment Failed</h4>
+            <h4 className="heading-md" style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Payment didn’t go through</h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem', textAlign: 'center' }}>
               {error}
             </p>
@@ -268,7 +277,7 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
       position: 'fixed',
       inset: 0,
       zIndex: 99999,
-      background: 'rgba(5, 5, 6, 0.95)',
+      background: 'rgba(10, 10, 18, 0.55)',
       backdropFilter: 'blur(20px)',
       display: 'flex',
       alignItems: 'center',
@@ -288,14 +297,14 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
         overflow: 'hidden'
       }}>
         {/* Glow Effects */}
-        <div style={{ position: 'absolute', top: -150, left: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(58,7,34,0.4), transparent)', filter: 'blur(50px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -150, right: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(0,212,255,0.15), transparent)', filter: 'blur(50px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: -150, left: '20%', width: 320, height: 320, background: 'radial-gradient(circle, rgba(var(--brand-secondary-rgb),0.22), transparent)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -160, right: '20%', width: 360, height: 360, background: 'radial-gradient(circle, rgba(var(--brand-rgb),0.18), transparent)', filter: 'blur(70px)', pointerEvents: 'none' }} />
 
         <div style={{ marginBottom: '1.5rem' }}>
           <img src="/logo.svg" alt="Pactopus Logo" style={{ height: '48px', margin: '0 auto 1.5rem' }} />
           <h2 className="heading-xl" style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Multiple Wallets Detected</h2>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            Both EVM (MetaMask/Coinbase) and Algorand extensions were found. Select which network workspace you want to initialize.
+            Both EVM (MetaMask/Coinbase) and Algorand extensions were found. Choose the workspace Pactopus should activate, and the interface will recolor in milliseconds to match that chain.
           </p>
         </div>
 
@@ -306,9 +315,9 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
             style={{
               padding: '2.25rem 1.75rem',
               cursor: 'pointer',
-              border: '1px solid rgba(197,155,39,0.15)',
-              background: 'rgba(255,255,255,0.01)',
-              transition: 'all 0.3s ease',
+              border: '1px solid rgba(255,182,72,0.28)',
+              background: 'var(--bg-card)',
+              transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -320,11 +329,11 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
               <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }}>🏛️</div>
               <h3 className="heading-md" style={{ marginBottom: '0.75rem', color: 'var(--accent-gold)' }}>Arc L1 Network</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Access the Roman legal court of Arc. Escrow USDC/EURC stablecoins, and release transactions in under 1 second using metamask.
+                Pick Arc for an Arc-tailored workspace, quick settlement, and a warm coral-and-mango palette that feels right at home.
               </p>
             </div>
-            <button className="btn btn-secondary btn-full" style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
-              Enter Arc Portal
+            <button className="btn btn-secondary btn-full" style={{ borderColor: 'rgba(255,182,72,0.45)' }}>
+              Enter Arc Workspace
             </button>
           </div>
 
@@ -334,9 +343,9 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
             style={{
               padding: '2.25rem 1.75rem',
               cursor: 'pointer',
-              border: '1px solid rgba(0,212,255,0.15)',
-              background: 'rgba(255,255,255,0.01)',
-              transition: 'all 0.3s ease',
+              border: '1px solid rgba(0,183,176,0.28)',
+              background: 'var(--bg-card)',
+              transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -348,11 +357,11 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
               <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }}>⚡</div>
               <h3 className="heading-md" style={{ marginBottom: '0.75rem', color: 'var(--accent-cyan)' }}>Algorand Vault</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Connect to the Algorand blockchain vault. Register invoices, opt-in ASA tokens, and manage client funds using Pera or MyAlgo.
+                Pick Algorand for a bright ocean-teal workspace, super smooth confirmations, and wallet support via Pera or injected providers.
               </p>
             </div>
-            <button className="btn btn-secondary btn-full" style={{ borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)' }}>
-              Enter Algorand Portal
+            <button className="btn btn-secondary btn-full" style={{ borderColor: 'rgba(0,183,176,0.45)' }}>
+              Enter Algorand Workspace
             </button>
           </div>
         </div>
@@ -462,8 +471,8 @@ function HomeContent() {
       <section style={{ position: 'relative', paddingTop: '8rem', paddingBottom: '6rem', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
         <div className="hero-bg">
           <div className="hero-grid" />
-          <div className="hero-glow-1" style={{ position: 'absolute', width: 700, height: 700, background: isAlgo ? 'radial-gradient(circle, rgba(0,212,255,0.15), transparent)' : 'radial-gradient(circle, rgba(58,7,34,0.35), transparent)', top: -200, left: '50%', transform: 'translateX(-50%)', filter: 'blur(80px)' }} />
-          <div className="hero-glow-2" style={{ position: 'absolute', width: 400, height: 400, background: isAlgo ? 'radial-gradient(circle, rgba(16,185,129,0.1), transparent)' : 'radial-gradient(circle, rgba(122,0,16,0.25), transparent)', bottom: 0, right: 0, filter: 'blur(80px)' }} />
+          <div className="hero-glow-1" style={{ position: 'absolute', width: 700, height: 700, background: 'radial-gradient(circle, rgba(var(--brand-rgb), 0.20), transparent)', top: -200, left: '50%', transform: 'translateX(-50%)', filter: 'blur(80px)' }} />
+          <div className="hero-glow-2" style={{ position: 'absolute', width: 400, height: 400, background: 'radial-gradient(circle, rgba(var(--brand-secondary-rgb), 0.16), transparent)', bottom: 0, right: 0, filter: 'blur(80px)' }} />
           <Particles />
         </div>
 
@@ -472,42 +481,50 @@ function HomeContent() {
           <div style={{ marginBottom: '1.5rem' }}>
             <span className="badge badge-cyan" style={{ border: '1px solid var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0.5rem 1rem' }}>
               <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-gold)', marginRight: '0.5rem', boxShadow: '0 0 8px var(--accent-gold)' }} />
-              [ {isAlgo ? 'THE WEB3 INVOICING PLATFORM FOR ALGORAND' : 'THE WEB3 INVOICING PLATFORM FOR FREELANCERS'} ]
+              [ {isAlgo ? 'Pactopus for Algorand' : 'Pactopus for Arc'} ]
             </span>
           </div>
 
           {/* Latin Legal Accent */}
-          <div style={{ fontStyle: 'italic', fontSize: '0.75rem', letterSpacing: '0.25em', color: 'var(--accent-gold)', marginBottom: '1rem', textTransform: 'uppercase' }}>
-            § FAST, SECURE, IRREVERSIBLE PAYMENTS §
+          <div style={{ fontStyle: 'italic', fontSize: '0.75rem', letterSpacing: '0.12em', color: 'var(--accent-gold)', marginBottom: '1rem', textTransform: 'uppercase' }}>
+            Friendly invoicing. Serious settlement.
           </div>
 
           {/* Headline */}
           <h1 className="display-xl" style={{ maxWidth: 950, margin: '0 auto 1.5rem', lineHeight: '1.15' }}>
             Send Invoices.<br />
-            Get Paid in <span className="gradient-text-gold">{isAlgo ? 'ALGO & USDC' : 'Seconds'}</span>.
+            Adapt in <span className="gradient-text-gold">Milliseconds</span>.
           </h1>
 
           {/* Subheadline */}
           <p className="body-lg" style={{ color: 'var(--text-secondary)', maxWidth: 680, margin: '0 auto 2.5rem', lineHeight: '1.7' }}>
-            Create secure, trustless invoices on the {isAlgo ? 'Algorand' : 'Arc'} blockchain. Your funds are locked in escrow and released instantly upon completion.
+            Pactopus shifts its colors in milliseconds to match {isAlgo ? 'Algorand' : 'Arc'} - like an octopus reacting to its surroundings. Create an invoice, share a link, and get paid on {isAlgo ? 'Algorand' : 'Arc'} without changing your flow.
           </p>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
             <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="hero-create-invoice-btn" style={{ minWidth: 200 }}>
-              Create Your First Invoice
+              Create an invoice
             </Link>
             <Link href="/onboarding" className="btn btn-secondary btn-lg" id="hero-learn-more-btn" style={{ minWidth: 200 }}>
-              See How It Works
+              See how it works
             </Link>
+          </div>
+
+          <div style={{ marginBottom: '3rem' }}>
+            <span className="badge badge-cyan" style={{ padding: '0.6rem 1rem', fontSize: '0.78rem', letterSpacing: '0.04em' }}>
+              {isAlgo
+                ? 'Algorand workspace - ocean teal + green highlights.'
+                : 'Arc workspace - warm mango + coral highlights.'}
+            </span>
           </div>
 
           {/* Social proof stats */}
           <div style={{ display: 'flex', gap: '3rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
               { value: isAlgo ? '1.5s' : '<1s', label: isAlgo ? 'Block finality' : 'Instant finality' },
-              { value: '0.5%', label: 'Release fee vs 2.9% Stripe' },
-              { value: isAlgo ? '0.001 ALGO' : '$0.01', label: isAlgo ? 'Gas cost on Algorand' : 'Gas cost on Arc' },
+              { value: '0.5%', label: 'Platform fee (vs 2.9% Stripe)' },
+              { value: isAlgo ? 'tiny' : 'tiny', label: 'Network fees (usually small)' },
               { value: '6×', label: 'Cheaper than bank wires' },
             ].map(stat => (
               <div key={stat.label} style={{ textAlign: 'center' }}>
@@ -558,9 +575,9 @@ function HomeContent() {
       <section style={{ padding: '6rem 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>§ II: The Process</p>
+            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>How it works</p>
             <h2 className="display-md">How Pactopus Works</h2>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Immutable, secure, and absolute</p>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Many arms, one flow, instantly adapted to the active chain</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -568,22 +585,22 @@ function HomeContent() {
               {
                 step: 'I',
                 icon: '📜',
-                title: 'Create a Pact (Invoice)',
-                desc: `Define the amount, set the deliverables, choose USDC or EURC, and bind your recipient wallet on ${isAlgo ? 'Algorand' : 'Arc'}. Takes 30 seconds.`,
+                title: 'Create an invoice',
+                desc: `Add the amount, a short description, and your wallet address. Pactopus already matches the ${isAlgo ? 'Algorand' : 'Arc'} look and feel.`,
                 color: 'var(--accent-gold)',
               },
               {
                 step: 'II',
                 icon: '⚖️',
-                title: 'Lock the Terms',
-                desc: 'Generate your secure payment link and send it to the client. The terms are locked on the blockchain.',
+                title: 'Share the link',
+                desc: 'Send the payment link to your client. They can pay straight from their wallet.',
                 color: 'var(--accent-red)',
               },
               {
                 step: 'III',
                 icon: '🏛️',
-                title: 'Instant Release',
-                desc: `The client locks funds in escrow. Once deliverable proof is registered, assets release in under ${isAlgo ? '2 seconds' : '1 second'}.`,
+                title: 'Get paid',
+                desc: `Your client confirms in their wallet and the payment settles on ${isAlgo ? 'Algorand' : 'Arc'} in seconds.`,
                 color: 'var(--accent-gold)',
               },
             ].map(item => (
@@ -644,7 +661,7 @@ function HomeContent() {
                 ['Reversals', 'Blockchain = irreversible'],
                 ['Hours', '24/7/365'],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.875rem' }}>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.875rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>{k}</span>
                   <span style={{ color: 'var(--accent-gold)' }}>{v}</span>
                 </div>
@@ -658,8 +675,8 @@ function HomeContent() {
       <section style={{ padding: '6rem 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>§ III: WHY IT WORKS</p>
-            <h2 className="display-md">Powerful Escrow Features</h2>
+            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>Why it works</p>
+            <h2 className="display-md">Built for fast, friendly payments</h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
@@ -667,12 +684,17 @@ function HomeContent() {
               {
                 icon: '🏛️',
                 title: isAlgo ? 'Built on Algorand' : 'Built on Arc',
-                desc: isAlgo ? 'Built natively on Algorand. Pure Proof-of-Stake consensus guarantees maximum speed, decentralized security, and fork-proof finality.' : 'Built natively on Arc. Smart contracts run independently, ensuring your invoice (Pact) is secure and immutable on the blockchain.'
+                desc: isAlgo ? 'Runs on Algorand for quick confirmations and low fees.' : 'Runs on Arc for fast settlement and a smooth wallet experience.'
               },
               {
-                icon: '🔒',
-                title: 'Secure Escrow',
-                desc: 'Funds are locked safely in smart contracts. Neither party can cancel arbitrarily, and funds release instantly upon verified completion.'
+                icon: '🐙',
+                title: 'Octopus-Adaptive Branding',
+                desc: `Pactopus changes its primary colors in milliseconds to match ${isAlgo ? 'Algorand' : 'Arc'} branding, so each tailored workspace feels native to the blockchain it serves.`
+              },
+              {
+                icon: '🛡️',
+                title: 'Verified Payments',
+                desc: 'Payments are checked server-side before invoices are marked as paid, so status updates feel reliable and easy to trust.'
               },
               {
                 icon: '⚖️',
@@ -735,7 +757,7 @@ function HomeContent() {
                   position: 'relative',
                   ...(tier.highlight ? {
                     border: '1px solid var(--accent-cyan)',
-                    boxShadow: '0 0 40px rgba(0,212,255,0.12)',
+                    boxShadow: '0 18px 60px rgba(var(--brand-rgb), 0.18)',
                   } : {}),
                 }}
               >
@@ -751,7 +773,7 @@ function HomeContent() {
                 </div>
                 <ul style={{ listStyle: 'none', marginBottom: '2rem' }}>
                   {tier.features.map(f => (
-                    <li key={f} style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
+                    <li key={f} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
                       <span style={{ color: 'var(--accent-green)' }}>✓</span> {f}
                     </li>
                   ))}
@@ -773,17 +795,17 @@ function HomeContent() {
       <section style={{ padding: '6rem 0', textAlign: 'center' }}>
         <div className="container-sm">
           <h2 className="display-md" style={{ marginBottom: '1rem' }}>
-            Ready to create your first <span className="gradient-text-gold">Pact</span>?
+            Ready to create your first <span className="gradient-text-gold">invoice</span>?
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
-            Join freelancers and consultants already using Pactopus. Deploy your first contract — free, no setup required.
+            Join freelancers and consultants already using Pactopus. Create your first invoice for free and share it in minutes.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="bottom-cta-btn">
               Create Your First Invoice →
             </Link>
             <Link href="/onboarding" className="btn btn-ghost btn-lg">
-              See How It Works
+              See how it works
             </Link>
           </div>
         </div>
@@ -799,13 +821,13 @@ function HomeContent() {
               </div>
               <p className="footer-copy">
                 © 2026 Kyrvyn Ltd. All rights reserved.<br />
-                Built by Gabriele Iacopo Langellotto. Powered by {isAlgo ? 'Algorand' : 'Arc'}.
+                Built by Gabriele Iacopo Langellotto. Powered by {isAlgo ? 'Algorand' : 'Arc'}, recolored in milliseconds by Pactopus.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-              <Link href="/onboarding" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>How it Works</Link>
-              <Link href="/create" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Create Invoice</Link>
-              <Link href="/dashboard" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Dashboard</Link>
+              <Link href="/onboarding" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Help</Link>
+              <Link href="/create" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>New invoice</Link>
+              <Link href="/dashboard" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>My dashboard</Link>
             </div>
           </div>
         </div>

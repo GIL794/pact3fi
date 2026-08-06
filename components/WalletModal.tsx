@@ -24,14 +24,14 @@ const EVM_WALLETS = [
     color: '#0052ff',
     recommended: false,
   },
-  {
+  ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ? [{
     type: 'walletconnect' as WalletType,
     name: 'WalletConnect',
-    description: 'Any mobile wallet',
+    description: 'Any mobile wallet (QR)',
     icon: '🔗',
     color: '#3b99fc',
     recommended: false,
-  },
+  }] : []),
 ];
 
 const ALGO_WALLETS = [
@@ -78,7 +78,7 @@ export default function WalletModal({ onClose }: WalletModalProps) {
           <div>
             <h2 className="heading-lg">Connect your {network === 'algorand' ? 'Algorand' : 'Arc (EVM)'} wallet</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-              Choose a wallet to receive stablecoin payments
+              Choose a wallet to receive stablecoin payments in the Pactopus workspace tailored to this chain
             </p>
           </div>
           <button
