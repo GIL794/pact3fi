@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
+import PactopusLogo from '@/components/PactopusLogo';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { CURRENCY_CONFIG, ARC_CHAIN, parseTokenAmount, PLATFORM_WALLET } from '@/lib/arc';
@@ -301,7 +302,9 @@ function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand'
         <div style={{ position: 'absolute', bottom: -160, right: '20%', width: 360, height: 360, background: 'radial-gradient(circle, rgba(var(--brand-rgb),0.18), transparent)', filter: 'blur(70px)', pointerEvents: 'none' }} />
 
         <div style={{ marginBottom: '1.5rem' }}>
-          <img src="/logo.svg" alt="Pactopus Logo" style={{ height: '48px', margin: '0 auto 1.5rem' }} />
+          <div style={{ margin: '0 auto 1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <PactopusLogo height={52} />
+          </div>
           <h2 className="heading-xl" style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Multiple Wallets Detected</h2>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', fontSize: '0.9375rem', lineHeight: 1.6 }}>
             Both EVM (MetaMask/Coinbase) and Algorand extensions were found. Choose the workspace Pactopus should activate, and the interface will recolor in milliseconds to match that chain.
@@ -817,7 +820,7 @@ function HomeContent() {
           <div className="footer-inner">
             <div>
               <div className="navbar-logo" style={{ marginBottom: '0.5rem' }}>
-                <img src="/logo.svg" alt="Pactopus" style={{ height: '36px', width: 'auto' }} />
+                <PactopusLogo height={34} />
               </div>
               <p className="footer-copy">
                 © 2026 Kyrvyn Ltd. All rights reserved.<br />

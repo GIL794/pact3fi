@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import PactopusLogo from '@/components/PactopusLogo';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { isValidAlgorandAddress } from '@/lib/algo';
@@ -318,7 +319,7 @@ function CreateForm() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
                 <div className="navbar-logo" style={{ marginBottom: '0.25rem', fontSize: '1.125rem' }}>
-                  <img src="/logo.svg" alt="Pactopus" style={{ height: '28px', width: 'auto' }} />
+                  <PactopusLogo height={28} />
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Quick summary</p>
               </div>

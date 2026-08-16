@@ -7,6 +7,7 @@ import { useWallet } from '@/lib/wallet';
 import { useTheme } from '@/lib/theme';
 import { isFunModeEnabled, setFunModeEnabled } from '@/lib/milestones';
 import toast from 'react-hot-toast';
+import PactopusLogo from './PactopusLogo';
 import WalletButton from './WalletButton';
 
 export default function Navbar() {
@@ -28,7 +29,7 @@ export default function Navbar() {
           {/* Logo & Network Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Link href="/" className="navbar-logo" style={{ color: 'var(--text-primary)' }}>
-              <img src="/logo.svg" alt="Pactopus" style={{ height: '36px', width: 'auto' }} />
+              <PactopusLogo height={36} />
             </Link>
             <span className={`badge ${network === 'algorand' ? 'badge-cyan' : 'badge-purple'}`} style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {network === 'algorand' ? 'Algorand Palette' : 'Arc Palette'}

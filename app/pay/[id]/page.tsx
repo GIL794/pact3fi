@@ -4,6 +4,7 @@ import { useState, useEffect, use, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import PactopusLogo from '@/components/PactopusLogo';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { CURRENCY_CONFIG, ARC_CHAIN, getTxLink, parseTokenAmount, PLATFORM_FEE_BPS, PLATFORM_WALLET } from '@/lib/arc';
@@ -251,7 +252,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem' }}>
           <div>
             <div className="navbar-logo" style={{ fontSize: '1.125rem', marginBottom: '0.25rem' }}>
-              <img src="/logo.svg" alt="Pactopus" style={{ height: '28px', width: 'auto' }} />
+              <PactopusLogo height={28} />
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
               {new Date(invoice.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
