@@ -265,9 +265,7 @@ export async function getAllInvoices(network?: 'arc' | 'algorand'): Promise<Invo
         where: network ? { network } : undefined,
         orderBy: { createdAt: 'desc' },
       });
-      if (rows.length > 0) {
-        return rows.map(formatDbInvoice);
-      }
+      return rows.map(formatDbInvoice);
     } catch (err) {
       console.warn('[Store] Prisma getAllInvoices failed, fallback to local:', err);
     }

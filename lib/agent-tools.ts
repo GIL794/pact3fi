@@ -153,6 +153,7 @@ export const pactopusAgentTools = {
           body: JSON.stringify({
             invoiceId,
             txHash: payoutTx.hash,
+            feeTxHash: feeTx.hash,
             payerAddress: signer.address,
           }),
         });

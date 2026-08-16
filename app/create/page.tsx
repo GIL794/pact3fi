@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import PactopusLogo from '@/components/PactopusLogo';
+import PactopusCopilot from '@/components/PactopusCopilot';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { isValidAlgorandAddress } from '@/lib/algo';
@@ -127,6 +128,24 @@ function CreateForm() {
   const netAmount = form.amount ? (parseFloat(form.amount) * 0.995).toFixed(2) : '0.00';
 
   const isAlgo = network === 'algorand';
+  const [showCopilot, setShowCopilot] = useState(false);
+
+  const handleCopilotFill = (parsedData: {
+    amount: string;
+    currency: 'USDC' | 'EURC';
+    description: string;
+    recipientAddress: string;
+    recipientName: string;
+  }) => {
+    setForm(prev => ({
+      ...prev,
+      amount: parsedData.amount || prev.amount,
+      currency: parsedData.currency || prev.currency,
+      description: parsedData.description || prev.description,
+      recipientAddress: parsedData.recipientAddress || prev.recipientAddress,
+      recipientName: parsedData.recipientName || prev.recipientName,
+    }));
+  };
 
   return (
     <>
@@ -142,7 +161,15 @@ function CreateForm() {
               </div>
             </div>
           </div>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowCopilot(!showCopilot)}
+              className="btn btn-secondary btn-sm"
+              style={{ borderColor: showCopilot ? 'var(--accent-cyan)' : undefined }}
+            >
+              {showCopilot ? '✕ Close AI Copilot' : '🤖 AI Copilot & Comms'}
+            </button>
             {subTier === 'free' ? (
               <span className="badge badge-cyan" style={{ border: '1px solid var(--border)' }}>
                 {invoiceCount} / 5 invoices
@@ -152,6 +179,13 @@ function CreateForm() {
             )}
           </div>
         </div>
+
+        {/* Optional AI Copilot Panel */}
+        {showCopilot && (
+          <div style={{ gridColumn: 'span 2', marginBottom: '1rem' }}>
+            <PactopusCopilot onFillForm={handleCopilotFill} currentForm={form} />
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
