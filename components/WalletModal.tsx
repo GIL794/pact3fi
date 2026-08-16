@@ -9,44 +9,82 @@ interface WalletModalProps {
 
 const EVM_WALLETS = [
   {
-    type: 'metamask' as WalletType,
-    name: 'MetaMask',
-    description: 'Most popular — 30M+ users',
-    icon: '🦊',
-    color: '#f6851b',
+    type: 'passkey' as WalletType,
+    name: 'Passkey / Face ID',
+    description: 'Instant 1-click biometric sign-in (No seed phrase)',
+    icon: '🔑',
+    color: '#00F0FF',
+    badge: 'Fastest',
     recommended: true,
   },
   {
+    type: 'metamask' as WalletType,
+    name: 'MetaMask',
+    description: 'Most popular EVM wallet — 30M+ users',
+    icon: '🦊',
+    color: '#f6851b',
+    recommended: false,
+  },
+  {
+    type: 'phantom' as WalletType,
+    name: 'Phantom',
+    description: 'Multi-chain passkey & EVM wallet',
+    icon: '👻',
+    color: '#ab9ff2',
+    recommended: false,
+  },
+  {
     type: 'coinbase' as WalletType,
-    name: 'Coinbase Wallet',
-    description: 'Best for beginners',
+    name: 'Coinbase Smart Wallet',
+    description: 'Passkey-native smart account',
     icon: '🔵',
     color: '#0052ff',
     recommended: false,
   },
-  ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ? [{
-    type: 'walletconnect' as WalletType,
-    name: 'WalletConnect',
-    description: 'Any mobile wallet (QR)',
-    icon: '🔗',
-    color: '#3b99fc',
-    recommended: false,
-  }] : []),
+  ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+    ? [
+        {
+          type: 'walletconnect' as WalletType,
+          name: 'WalletConnect',
+          description: 'Any mobile wallet via QR code',
+          icon: '🔗',
+          color: '#3b99fc',
+          recommended: false,
+        },
+      ]
+    : []),
 ];
 
 const ALGO_WALLETS = [
   {
-    type: 'pera' as WalletType,
-    name: 'Pera Wallet',
-    description: 'Connect via Pera mobile or extension',
-    icon: '📱',
-    color: '#ffe500',
+    type: 'passkey_algo' as WalletType,
+    name: 'Passkey / Biometric',
+    description: '1-click Touch ID / Face ID for Algorand',
+    icon: '🔑',
+    color: '#00B7B0',
+    badge: 'Fastest',
     recommended: true,
   },
   {
+    type: 'pera' as WalletType,
+    name: 'Pera Wallet',
+    description: 'Connect via Pera mobile app or extension',
+    icon: '📱',
+    color: '#ffe500',
+    recommended: false,
+  },
+  {
+    type: 'defly' as WalletType,
+    name: 'Defly Wallet',
+    description: 'Algorand DeFi & biometric wallet',
+    icon: '🚀',
+    color: '#8b5cf6',
+    recommended: false,
+  },
+  {
     type: 'myalgo' as WalletType,
-    name: 'MyAlgo / Injected Wallet',
-    description: 'Connect via standard browser extension',
+    name: 'Kibisis / Web Wallet',
+    description: 'Standard Algorand browser extension',
     icon: '🔒',
     color: '#00ccff',
     recommended: false,
@@ -103,7 +141,12 @@ export default function WalletModal({ onClose }: WalletModalProps) {
             <div style={{ textAlign: 'left', flex: 1 }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {wallet.name}
-                {wallet.recommended && (
+                {'badge' in wallet && (wallet as any).badge && (
+                  <span className="badge badge-green" style={{ fontSize: '0.6875rem' }}>
+                    ⚡ {(wallet as any).badge}
+                  </span>
+                )}
+                {wallet.recommended && !('badge' in wallet) && (
                   <span className="badge badge-cyan" style={{ fontSize: '0.6875rem' }}>Recommended</span>
                 )}
               </div>

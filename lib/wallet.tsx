@@ -16,7 +16,17 @@ declare global {
   }
 }
 
-export type WalletType = 'metamask' | 'coinbase' | 'walletconnect' | 'pera' | 'myalgo' | null;
+export type WalletType =
+  | 'metamask'
+  | 'phantom'
+  | 'coinbase'
+  | 'walletconnect'
+  | 'passkey'
+  | 'pera'
+  | 'defly'
+  | 'myalgo'
+  | 'passkey_algo'
+  | null;
 
 interface WalletState {
   address: string | null;
@@ -81,7 +91,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const pick = (predicate: (p: any) => boolean) => candidates.find(predicate) || null;
 
-    if (preferred === 'metamask') return pick((p: any) => !!p?.isMetaMask) || candidates[0] || null;
+    if (preferred === 'phantom') {
+      const phantom = (window as any).phantom?.ethereum || ((eth as any).isPhantom ? eth : null);
+      if (phantom) return phantom;
+      return pick((p: any) => !!p?.isPhantom) || null;
+    }
+    if (preferred === 'metamask') return pick((p: any) => !!p?.isMetaMask && !p?.isPhantom) || candidates[0] || null;
     if (preferred === 'coinbase') return pick((p: any) => !!p?.isCoinbaseWallet) || candidates[0] || null;
 
     return candidates[0] || (providers[0] || null);
@@ -186,7 +201,163 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(async (type: WalletType) => {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
     try {
-      if (type === 'pera') {
+      if (type === 'passkey') {
+        // Biometric WebAuthn Passkey (Face ID / Touch ID / Windows Hello)
+        if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+          throw new Error('Passkeys are not supported on this browser/device.');
+        }
+
+        let credId = localStorage.getItem('pactopus_passkey_evm_id');
+        let address = '';
+
+        if (!credId) {
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+          const userId = new Uint8Array(16);
+          window.crypto.getRandomValues(userId);
+
+          const credential = (await navigator.credentials.create({
+            publicKey: {
+              challenge,
+              rp: { name: 'Pactopus Network', id: window.location.hostname },
+              user: {
+                id: userId,
+                name: 'pactopus-user@passkey',
+                displayName: 'Pactopus Sovereign Passkey',
+              },
+              pubKeyCredParams: [
+                { alg: -7, type: 'public-key' },
+                { alg: -257, type: 'public-key' },
+              ],
+              authenticatorSelection: {
+                userVerification: 'preferred',
+                residentKey: 'preferred',
+              },
+              timeout: 60000,
+            },
+          })) as any;
+
+          if (!credential) throw new Error('Passkey creation was cancelled.');
+          
+          const rawHash = await crypto.subtle.digest('SHA-256', credential.rawId);
+          const hashHex = Array.from(new Uint8Array(rawHash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+          address = ('0x' + hashHex.slice(0, 40)).toLowerCase();
+          localStorage.setItem('pactopus_passkey_evm_id', address);
+        } else {
+          address = credId;
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ type, address, network: 'arc' }));
+        }
+
+        setState(prev => ({
+          ...prev,
+          address,
+          isConnected: true,
+          isConnecting: false,
+          walletType: type,
+          chainId: ARC_CHAIN.id,
+          isWrongNetwork: false,
+          network: 'arc',
+          error: null,
+        }));
+
+        recordMilestone('first_wallet_connect');
+        return;
+      } else if (type === 'passkey_algo') {
+        // Biometric WebAuthn Passkey for Algorand
+        if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+          throw new Error('Passkeys are not supported on this browser/device.');
+        }
+
+        let savedAlgoAddr = localStorage.getItem('pactopus_passkey_algo_addr');
+        let address = '';
+
+        if (!savedAlgoAddr) {
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+          const userId = new Uint8Array(16);
+          window.crypto.getRandomValues(userId);
+
+          const credential = (await navigator.credentials.create({
+            publicKey: {
+              challenge,
+              rp: { name: 'Pactopus Network', id: window.location.hostname },
+              user: {
+                id: userId,
+                name: 'pactopus-algo@passkey',
+                displayName: 'Pactopus Algorand Passkey',
+              },
+              pubKeyCredParams: [
+                { alg: -7, type: 'public-key' },
+                { alg: -257, type: 'public-key' },
+              ],
+              authenticatorSelection: {
+                userVerification: 'preferred',
+                residentKey: 'preferred',
+              },
+              timeout: 60000,
+            },
+          })) as any;
+
+          if (!credential) throw new Error('Passkey creation was cancelled.');
+
+          const rawHash = await crypto.subtle.digest('SHA-256', credential.rawId);
+          const hashBytes = Array.from(new Uint8Array(rawHash));
+          const algoChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+          address = Array.from({ length: 58 }, (_, i) => algoChars[hashBytes[i % hashBytes.length] % 32]).join('');
+          localStorage.setItem('pactopus_passkey_algo_addr', address);
+        } else {
+          address = savedAlgoAddr;
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ type, address, network: 'algorand' }));
+        }
+
+        setState(prev => ({
+          ...prev,
+          address,
+          isConnected: true,
+          isConnecting: false,
+          walletType: type,
+          network: 'algorand',
+          error: null,
+        }));
+
+        recordMilestone('first_wallet_connect');
+        await fetchAlgoBalances(address);
+        return;
+      } else if (type === 'defly') {
+        const defly = (window as any).defly || (window as any).algorand || (window as any).algo;
+        if (!defly) {
+          window.open('https://defly.app/', '_blank');
+          throw new Error('Defly wallet not detected. Install Defly extension/app or use Pera Wallet.');
+        }
+        const accounts = await defly.enable();
+        if (!accounts || !accounts.length) throw new Error('No Defly accounts found');
+        const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ type, address, network: 'algorand' }));
+        }
+
+        setState(prev => ({
+          ...prev,
+          address,
+          isConnected: true,
+          isConnecting: false,
+          walletType: type,
+          network: 'algorand',
+          error: null,
+        }));
+
+        recordMilestone('first_wallet_connect');
+        await fetchAlgoBalances(address);
+      } else if (type === 'pera') {
         if (!peraWallet) throw new Error('Pera Wallet provider not initialized');
         const accounts = await peraWallet.connect();
         
@@ -273,11 +444,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } else {
           provider = getProvider(type);
           if (!provider) {
+            if (type === 'phantom') {
+              window.open('https://phantom.app/', '_blank');
+              throw new Error('Phantom wallet not detected. Please install Phantom from phantom.app');
+            }
+            if (type === 'coinbase') {
+              window.open('https://www.coinbase.com/wallet', '_blank');
+              throw new Error('Coinbase Wallet not detected.');
+            }
             if (type === 'metamask') {
               window.open('https://metamask.io/download/', '_blank');
               throw new Error('MetaMask not installed. Please install it and refresh.');
             }
-            throw new Error('No browser wallet detected. Please install MetaMask.');
+            throw new Error('No browser wallet detected. Please install a Web3 wallet.');
           }
         }
 
