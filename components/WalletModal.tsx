@@ -18,6 +18,14 @@ const EVM_WALLETS = [
     recommended: true,
   },
   {
+    type: 'exodus' as WalletType,
+    name: 'Exodus Wallet',
+    description: 'Multi-chain Web3 browser extension & mobile app',
+    icon: '🚀',
+    color: '#8b5cf6',
+    recommended: false,
+  },
+  {
     type: 'metamask' as WalletType,
     name: 'MetaMask',
     description: 'Most popular EVM wallet — 30M+ users',
@@ -57,13 +65,22 @@ const EVM_WALLETS = [
 
 const ALGO_WALLETS = [
   {
+    type: 'exodus' as WalletType,
+    name: 'Exodus Browser Wallet',
+    description: 'Fastest 30s setup — Browser extension & multi-chain',
+    icon: '🚀',
+    color: '#8b5cf6',
+    badge: 'Recommended',
+    recommended: true,
+  },
+  {
     type: 'passkey_algo' as WalletType,
     name: 'Passkey / Biometric',
     description: '1-click Touch ID / Face ID for Algorand',
     icon: '🔑',
     color: '#00B7B0',
     badge: 'Fastest',
-    recommended: true,
+    recommended: false,
   },
   {
     type: 'pera' as WalletType,

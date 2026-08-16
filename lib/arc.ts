@@ -70,7 +70,7 @@ export const CURRENCY_CONFIG: Record<Currency, {
 
 // Platform fee: 0.5% of transaction value
 export const PLATFORM_FEE_BPS = 50; // basis points
-export const PLATFORM_WALLET = process.env.NEXT_PUBLIC_PLATFORM_WALLET || '0x0000000000000000000000000000000000000001';
+export const PLATFORM_WALLET = process.env.NEXT_PUBLIC_PLATFORM_WALLET || '0x8F6D01C9D6a7F0b6719Ccb9747B12fF2CA91442e';
 
 /**
  * Add Arc testnet to MetaMask

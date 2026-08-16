@@ -20,6 +20,7 @@ export type WalletType =
   | 'metamask'
   | 'phantom'
   | 'coinbase'
+  | 'exodus'
   | 'walletconnect'
   | 'passkey'
   | 'pera'
@@ -91,12 +92,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const pick = (predicate: (p: any) => boolean) => candidates.find(predicate) || null;
 
+    if (preferred === 'exodus') {
+      const exo = (window as any).exodus?.ethereum || ((eth as any).isExodus ? eth : null);
+      if (exo) return exo;
+      return pick((p: any) => !!p?.isExodus) || null;
+    }
     if (preferred === 'phantom') {
       const phantom = (window as any).phantom?.ethereum || ((eth as any).isPhantom ? eth : null);
       if (phantom) return phantom;
       return pick((p: any) => !!p?.isPhantom) || null;
     }
-    if (preferred === 'metamask') return pick((p: any) => !!p?.isMetaMask && !p?.isPhantom) || candidates[0] || null;
+    if (preferred === 'metamask') return pick((p: any) => !!p?.isMetaMask && !p?.isPhantom && !p?.isExodus) || candidates[0] || null;
     if (preferred === 'coinbase') return pick((p: any) => !!p?.isCoinbaseWallet) || candidates[0] || null;
 
     return candidates[0] || (providers[0] || null);
@@ -331,6 +337,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         recordMilestone('first_wallet_connect');
         await fetchAlgoBalances(address);
         return;
+      } else if (type === 'exodus' && state.network === 'algorand') {
+        const exoAlgo = (window as any).exodus?.algorand || (window as any).algorand || (window as any).algo;
+        if (!exoAlgo) {
+          window.open('https://www.exodus.com/web3-wallet/', '_blank');
+          throw new Error('Exodus Browser Wallet not detected. Please install Exodus from exodus.com/web3-wallet/');
+        }
+        const accounts = await exoAlgo.enable();
+        if (!accounts || !accounts.length) throw new Error('No Exodus accounts found');
+        const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ type, address, network: 'algorand' }));
+        }
+
+        setState(prev => ({
+          ...prev,
+          address,
+          isConnected: true,
+          isConnecting: false,
+          walletType: type,
+          network: 'algorand',
+          error: null,
+        }));
+
+        recordMilestone('first_wallet_connect');
+        await fetchAlgoBalances(address);
       } else if (type === 'defly') {
         const defly = (window as any).defly || (window as any).algorand || (window as any).algo;
         if (!defly) {
@@ -444,6 +476,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } else {
           provider = getProvider(type);
           if (!provider) {
+            if (type === 'exodus') {
+              window.open('https://www.exodus.com/web3-wallet/', '_blank');
+              throw new Error('Exodus Browser Wallet not detected. Please install Exodus from exodus.com/web3-wallet/');
+            }
             if (type === 'phantom') {
               window.open('https://phantom.app/', '_blank');
               throw new Error('Phantom wallet not detected. Please install Phantom from phantom.app');

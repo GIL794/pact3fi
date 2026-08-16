@@ -444,15 +444,26 @@ function CreateForm() {
               A wallet is a free app that holds your stablecoins. It takes 2 minutes to set up.
             </p>
             {isAlgo ? (
-              <a
-                href="https://perawallet.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-ghost btn-sm btn-full"
-                id="pera-install-link"
-              >
-                📱 Get Pera Wallet (free)
-              </a>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <a
+                  href="https://www.exodus.com/web3-wallet/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm btn-full"
+                  id="exodus-install-link"
+                >
+                  🚀 Get Exodus Extension (Fast 30s setup)
+                </a>
+                <a
+                  href="https://perawallet.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm btn-full"
+                  id="pera-install-link"
+                >
+                  📱 Get Pera Wallet (Mobile / Web)
+                </a>
+              </div>
             ) : (
               <a
                 href="https://metamask.io"
