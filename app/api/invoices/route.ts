@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Currency must be USDC or EURC' }, { status: 400 });
     }
     if (!description || description.trim().length < 3) {
-      return NextResponse.json({ error: 'Description is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Description is required (min 3 characters)' }, { status: 400 });
     }
     
     // Address validation based on network
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid Algorand wallet address (must be 58 uppercase characters)' }, { status: 400 });
       }
     } else {
-      return NextResponse.json({ error: 'Invalid network' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid network specification' }, { status: 400 });
     }
 
-    const invoice = createInvoice({
+    const invoice = await createInvoice({
       amount: parseFloat(amount).toFixed(2),
       currency: currency as Currency,
       description: description.trim(),
@@ -49,8 +49,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const network = (searchParams.get('network') as 'arc' | 'algorand') || 'arc';
-  const stats = getDashboardStats(network);
-  return NextResponse.json(stats);
+  try {
+    const { searchParams } = new URL(request.url);
+    const network = (searchParams.get('network') as 'arc' | 'algorand') || 'arc';
+    const stats = await getDashboardStats(network);
+    return NextResponse.json(stats);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: errMsg || 'Failed to fetch dashboard stats' }, { status: 500 });
+  }
 }

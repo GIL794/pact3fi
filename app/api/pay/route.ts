@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getInvoice, markInvoicePaid } from '@/lib/store';
-import { CONTRACTS, PLATFORM_WALLET, PLATFORM_FEE_BPS } from '@/lib/arc';
+import { getInvoice, markInvoicePaid, isTxHashUsed } from '@/lib/store';
+import { CONTRACTS, PLATFORM_WALLET } from '@/lib/arc';
 import { ethers } from 'ethers';
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
@@ -135,7 +135,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: invoiceId, txHash, payerAddress' }, { status: 400 });
     }
 
-    const invoice = getInvoice(invoiceId);
+    // Double-spend protection: check if this txHash was already used on another invoice
+    const alreadyUsed = await isTxHashUsed(txHash, invoiceId);
+    if (alreadyUsed) {
+      return NextResponse.json({ error: 'Transaction hash has already been registered for another invoice.' }, { status: 409 });
+    }
+
+    const invoice = await getInvoice(invoiceId);
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
@@ -166,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark invoice as paid once verified on-chain
-    const updatedInvoice = markInvoicePaid(invoiceId, txHash, payerAddress, feeVal);
+    const updatedInvoice = await markInvoicePaid(invoiceId, txHash, payerAddress, feeVal, feeTxHash);
 
     return NextResponse.json({
       status: 'paid',

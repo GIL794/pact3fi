@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the invoice once payment is successfully verified
-    const invoice = createInvoice({
+    const invoice = await createInvoice({
       amount,
       currency,
       description,

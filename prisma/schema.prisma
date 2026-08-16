@@ -1,0 +1,47 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Invoice {
+  id               String    @id
+  amount           String
+  currency         String
+  description      String
+  recipientAddress String
+  recipientName    String?
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime?
+  status           String    @default("pending") // 'pending' | 'paid' | 'expired'
+  txHash           String?   @unique
+  feeTxHash        String?
+  paidAt           DateTime?
+  paidBy           String?
+  fee              String?
+  network          String    @default("arc") // 'arc' | 'algorand'
+  updatedAt        DateTime  @updatedAt
+
+  @@index([network, status])
+  @@index([recipientAddress])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  tier      String   @default("free") // 'free' | 'pro' | 'business'
+  txHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AgentLog {
+  id        String   @id @default(cuid())
+  action    String
+  details   String
+  txHash    String?
+  status    String   @default("success")
+  createdAt DateTime @default(now())
+}

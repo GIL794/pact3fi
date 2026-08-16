@@ -1,7 +1,8 @@
-// File-backed invoice database persistence layer (demo-ready)
+// Unified Persistent Store Layer — PostgreSQL (Neon / Supabase) with Local JSON fallback
 import fs from 'fs';
 import path from 'path';
 import { Currency } from './arc';
+import { prisma, isCloudDbEnabled } from './db';
 
 export type InvoiceStatus = 'pending' | 'paid' | 'expired';
 
@@ -16,6 +17,7 @@ export interface Invoice {
   expiresAt?: string;       // Optional expiry
   status: InvoiceStatus;
   txHash?: string;          // Set when paid
+  feeTxHash?: string;
   paidAt?: string;
   paidBy?: string;          // Payer wallet address
   fee?: string;             // Platform fee taken (0.5%)
@@ -25,8 +27,8 @@ export interface Invoice {
 const DB_DIR = path.join(process.cwd(), 'db');
 const DB_FILE = path.join(DB_DIR, 'invoices.json');
 
-// Seed some demo invoices for dashboard preview
-function getDemoData(): Invoice[] {
+// Seed demo invoices for dashboard preview
+export function getDemoData(): Invoice[] {
   return [
     // --- Arc (EVM) Invoices ---
     {
@@ -101,8 +103,8 @@ function getDemoData(): Invoice[] {
   ];
 }
 
-// Load database Map from file
-function readDatabase(): Map<string, Invoice> {
+// Local fallback database Map
+function readLocalDatabase(): Map<string, Invoice> {
   const map = new Map<string, Invoice>();
   try {
     if (!fs.existsSync(DB_DIR)) {
@@ -116,13 +118,12 @@ function readDatabase(): Map<string, Invoice> {
     const parsed: Invoice[] = JSON.parse(data);
     parsed.forEach(inv => map.set(inv.id, inv));
   } catch (err) {
-    console.error('Failed to load database file:', err);
+    console.error('[Store] Failed to read local database:', err);
   }
   return map;
 }
 
-// Save database Map to file
-function writeDatabase(map: Map<string, Invoice>) {
+function writeLocalDatabase(map: Map<string, Invoice>) {
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -130,7 +131,7 @@ function writeDatabase(map: Map<string, Invoice>) {
     const arr = Array.from(map.values());
     fs.writeFileSync(DB_FILE, JSON.stringify(arr, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Failed to write database file:', err);
+    console.error('[Store] Failed to write local database:', err);
   }
 }
 
@@ -143,56 +144,196 @@ export function generateInvoiceId(): string {
   return `${seg(4)}-${seg(4)}-${seg(4)}`;
 }
 
-export function createInvoice(data: Omit<Invoice, 'id' | 'createdAt' | 'status'>): Invoice {
-  const db = readDatabase();
+/**
+ * Format Prisma DB Invoice to application Invoice model
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatDbInvoice(row: any): Invoice {
+  return {
+    id: row.id,
+    amount: row.amount,
+    currency: row.currency as Currency,
+    description: row.description,
+    recipientAddress: row.recipientAddress,
+    recipientName: row.recipientName || undefined,
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
+    expiresAt: row.expiresAt ? (row.expiresAt instanceof Date ? row.expiresAt.toISOString() : String(row.expiresAt)) : undefined,
+    status: row.status as InvoiceStatus,
+    txHash: row.txHash || undefined,
+    feeTxHash: row.feeTxHash || undefined,
+    paidAt: row.paidAt ? (row.paidAt instanceof Date ? row.paidAt.toISOString() : String(row.paidAt)) : undefined,
+    paidBy: row.paidBy || undefined,
+    fee: row.fee || undefined,
+    network: row.network as 'arc' | 'algorand',
+  };
+}
+
+/**
+ * Create a new Invoice
+ */
+export async function createInvoice(data: Omit<Invoice, 'id' | 'createdAt' | 'status'>): Promise<Invoice> {
   const id = generateInvoiceId();
+  const now = new Date();
+
+  if (isCloudDbEnabled && prisma) {
+    try {
+      const created = await prisma.invoice.create({
+        data: {
+          id,
+          amount: data.amount,
+          currency: data.currency,
+          description: data.description,
+          recipientAddress: data.recipientAddress,
+          recipientName: data.recipientName || null,
+          network: data.network || 'arc',
+          status: 'pending',
+          createdAt: now,
+        },
+      });
+      return formatDbInvoice(created);
+    } catch (err) {
+      console.warn('[Store] Prisma createInvoice failed, fallback to local storage:', err);
+    }
+  }
+
+  // Local fallback
+  const db = readLocalDatabase();
   const invoice: Invoice = {
     ...data,
     id,
-    createdAt: new Date().toISOString(),
+    createdAt: now.toISOString(),
     status: 'pending',
   };
   db.set(id, invoice);
-  writeDatabase(db);
+  writeLocalDatabase(db);
   return invoice;
 }
 
-export function getInvoice(id: string): Invoice | undefined {
-  const db = readDatabase();
+/**
+ * Get an invoice by ID
+ */
+export async function getInvoice(id: string): Promise<Invoice | undefined> {
+  if (isCloudDbEnabled && prisma) {
+    try {
+      const row = await prisma.invoice.findUnique({
+        where: { id },
+      });
+      if (row) return formatDbInvoice(row);
+    } catch (err) {
+      console.warn('[Store] Prisma getInvoice failed, fallback to local:', err);
+    }
+  }
+
+  const db = readLocalDatabase();
   return db.get(id);
 }
 
-export function getAllInvoices(): Invoice[] {
-  const db = readDatabase();
-  return Array.from(db.values()).sort(
+/**
+ * Check if a txHash has already been used (Double-spend prevention)
+ */
+export async function isTxHashUsed(txHash: string, excludeInvoiceId?: string): Promise<boolean> {
+  if (isCloudDbEnabled && prisma) {
+    try {
+      const match = await prisma.invoice.findFirst({
+        where: {
+          txHash,
+          ...(excludeInvoiceId ? { id: { not: excludeInvoiceId } } : {}),
+        },
+      });
+      return Boolean(match);
+    } catch (err) {
+      console.warn('[Store] Prisma isTxHashUsed check failed:', err);
+    }
+  }
+
+  const db = readLocalDatabase();
+  for (const inv of db.values()) {
+    if (inv.txHash && inv.txHash.toLowerCase() === txHash.toLowerCase() && inv.id !== excludeInvoiceId) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Retrieve all invoices
+ */
+export async function getAllInvoices(network?: 'arc' | 'algorand'): Promise<Invoice[]> {
+  if (isCloudDbEnabled && prisma) {
+    try {
+      const rows = await prisma.invoice.findMany({
+        where: network ? { network } : undefined,
+        orderBy: { createdAt: 'desc' },
+      });
+      if (rows.length > 0) {
+        return rows.map(formatDbInvoice);
+      }
+    } catch (err) {
+      console.warn('[Store] Prisma getAllInvoices failed, fallback to local:', err);
+    }
+  }
+
+  const db = readLocalDatabase();
+  const arr = Array.from(db.values());
+  const filtered = network ? arr.filter(i => i.network === network) : arr;
+  return filtered.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
-export function markInvoicePaid(
+/**
+ * Mark invoice as paid
+ */
+export async function markInvoicePaid(
   id: string,
   txHash: string,
   paidBy: string,
-  fee: string
-): Invoice | null {
-  const db = readDatabase();
+  fee: string,
+  feeTxHash?: string
+): Promise<Invoice | null> {
+  const now = new Date();
+
+  if (isCloudDbEnabled && prisma) {
+    try {
+      const updated = await prisma.invoice.update({
+        where: { id },
+        data: {
+          status: 'paid',
+          txHash,
+          feeTxHash: feeTxHash || null,
+          paidBy,
+          fee,
+          paidAt: now,
+        },
+      });
+      return formatDbInvoice(updated);
+    } catch (err) {
+      console.warn('[Store] Prisma markInvoicePaid failed, fallback to local:', err);
+    }
+  }
+
+  const db = readLocalDatabase();
   const inv = db.get(id);
   if (!inv) return null;
   const updated: Invoice = {
     ...inv,
     status: 'paid',
     txHash,
-    paidAt: new Date().toISOString(),
+    feeTxHash,
+    paidAt: now.toISOString(),
     paidBy,
     fee,
   };
   db.set(id, updated);
-  writeDatabase(db);
+  writeLocalDatabase(db);
   return updated;
 }
 
-export function getDashboardStats(network: 'arc' | 'algorand' = 'arc') {
-  const all = getAllInvoices().filter(i => i.network === network);
+/**
+ * Calculate dashboard stats
+ */
+export async function getDashboardStats(network: 'arc' | 'algorand' = 'arc') {
+  const all = await getAllInvoices(network);
   const paid = all.filter(i => i.status === 'paid');
   const pending = all.filter(i => i.status === 'pending');
 
@@ -204,10 +345,11 @@ export function getDashboardStats(network: 'arc' | 'algorand' = 'arc') {
     return sum + (i.currency === 'EURC' ? parseFloat(i.amount) : 0);
   }, 0);
 
-  // Payments this month
   const thisMonth = new Date();
   thisMonth.setDate(1);
-  const paidThisMonth = paid.filter(i => new Date(i.paidAt!) >= thisMonth);
+  thisMonth.setHours(0, 0, 0, 0);
+
+  const paidThisMonth = paid.filter(i => i.paidAt && new Date(i.paidAt) >= thisMonth);
   const earningsThisMonth = paidThisMonth.reduce((sum, i) => sum + parseFloat(i.amount), 0);
 
   return {
