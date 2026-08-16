@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local documentation - only root README.md is tracked on GitHub
+/*.md
+!/README.md
+/docs/
 
 # local persistent artifacts
 /db/

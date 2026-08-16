@@ -159,9 +159,9 @@ Related docs:
 - [Design system guide](file:///Users/trumpets/Documents/GitHub/pact3fi/design-system/README.md)
 - [Palette notes](file:///Users/trumpets/Documents/GitHub/pact3fi/design-system/palette-adjustments.md)
 
-## Agentic / Experimental Features
+## Autonomous Agentic Capabilities
 
-Pactopus also includes experimental and blueprint-style functionality for more autonomous payment workflows.
+Pactopus natively equips automated scripts and AI agents with programmatic billing and liquidity management.
 
 ### HTTP 402 Invoice Creation
 
@@ -169,34 +169,31 @@ Route: `/api/v2/invoices`
 
 - Returns `402 Payment Required` when the invoice creation nanopayment has not been made
 - Verifies the Arc payment on-chain once a transaction hash is supplied
-- Creates the invoice after successful verification
+- Creates the invoice in the database after successful on-chain verification
 
 ### Agent Tools
 
 File: `lib/agent-tools.ts`
 
-- `createInvoiceTool` can create an invoice and handle the `402` retry flow
-- `payInvoiceTool` can pay an invoice and route the fee on-chain
+- `createInvoiceTool`: Generates an invoice and handles the `402` payment retry flow autonomously
+- `payInvoiceTool`: Executes payee payouts and platform fee splits on-chain
 
-### Yield Sweep Route
+### DeFi Yield Sweeper
 
 Route: `/api/v2/sweep`
 
-- Reads `ARC_AGENT_PRIVATE_KEY`
-- Keeps a reserve balance
-- Sweeps excess Arc-side USDC into a mock ERC-4626-style vault flow
-
-For deeper architectural notes, see [PACTOPUS_V2_BLUEPRINT.md](file:///Users/trumpets/Documents/GitHub/pact3fi/PACTOPUS_V2_BLUEPRINT.md).
+- Monitors agent wallet float
+- Retains an operational reserve balance (100 USDC)
+- Sweeps excess USDC into an ERC-4626 yield-bearing vault on Arc L1
 
 ## Tech Stack
 
-- Next.js 16 App Router
-- TypeScript
-- Vanilla CSS with tokenized theming
-- TanStack Query
-- Ethers.js v6
-- Algorand SDK
-- File-backed JSON storage in `db/invoices.json`
+- Next.js 16 App Router (Turbopack, TypeScript)
+- Neon PostgreSQL with Prisma ORM (`@prisma/adapter-pg`)
+- Vanilla CSS with tokenized theming & particle physics
+- TanStack Query (React Query v5)
+- Ethers.js v6 & Algorand SDK
+- Vercel Native Deployment Configuration
 
 ## Quick Start
 
