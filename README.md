@@ -153,11 +153,9 @@ The current implementation includes:
 - Tokenized colors for centralized contrast control
 - Automated light-theme contrast checks with `npm run audit:contrast`
 
-Related docs:
-
-- [Accessibility audit guide](file:///Users/trumpets/Documents/GitHub/pact3fi/docs/accessibility-performance-audit.md)
-- [Design system guide](file:///Users/trumpets/Documents/GitHub/pact3fi/design-system/README.md)
-- [Palette notes](file:///Users/trumpets/Documents/GitHub/pact3fi/design-system/palette-adjustments.md)
+Related documentation:
+- Accessible high-contrast theming and design system tokens
+- Responsive Arc and Algorand multi-chain routing specs
 
 ## Autonomous Agentic Capabilities
 

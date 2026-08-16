@@ -82,16 +82,15 @@
     <path d="M 320,380 L 480,360" stroke="#FF1A3B" stroke-width="3" stroke-opacity="0.8" />
   </g>
 
-  <!-- TYPOGRAPHY WORDMARK: PACT3FI -->
+  <!-- TYPOGRAPHY WORDMARK: PACTOPUS -->
   <text x="400" y="690" 
         font-family="'Times New Roman', 'Trajan Pro', 'Georgia', serif" 
-        font-size="52" 
+        font-size="48" 
         font-weight="bold" 
         letter-spacing="8" 
         text-anchor="middle">
     <tspan fill="url(#chiseledGold)">PACT</tspan>
-    <tspan fill="#F2F2F4" font-style="italic">III</tspan>
-    <tspan fill="#A30015">FI</tspan>
+    <tspan fill="#00D2FF">OPUS</tspan>
   </text>
 
   <!-- Deep Subtitle / Latin Legal Motto -->
