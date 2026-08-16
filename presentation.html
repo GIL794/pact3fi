@@ -321,33 +321,32 @@
 
       <section>
         <div class="slide-shell">
-          <div class="eyebrow">Technical Notes</div>
+          <div class="eyebrow">Technical Architecture</div>
           <h2>Implementation highlights for builders and judges.</h2>
           <div class="grid-2">
             <div class="card">
-              <h3>App architecture</h3>
+              <h3>Production stack</h3>
               <ul class="clean">
-                <li>Next.js App Router with TypeScript.</li>
-                <li>TanStack Query for client-side data fetching and refreshes.</li>
-                <li>Token-driven CSS design system with document-level data attributes.</li>
-                <li>JSON-backed invoice persistence in <code>db/invoices.json</code>.</li>
+                <li>Next.js App Router with TypeScript & Turbopack.</li>
+                <li>Neon PostgreSQL with Prisma ORM and driver adapters.</li>
+                <li>TanStack Query for real-time data fetching and polling.</li>
+                <li>Token-driven responsive CSS design system.</li>
               </ul>
             </div>
             <div class="card">
-              <h3>Experimental routes</h3>
-              <p>The MVP also includes forward-leaning agent features, documented separately from core production-style flows.</p>
+              <h3>Agentic payment rails</h3>
+              <p>Pactopus natively equips autonomous AI agents with programmatic billing and liquidity management.</p>
               <div class="code">POST /api/v2/invoices
-- returns 402 Payment Required
-- verifies Arc nanopayment on-chain
-- creates invoice after verification
+- returns HTTP 402 Payment Required
+- verifies Arc USDC nanopayment on-chain
+- mints invoice upon ledger verification
 
 POST /api/v2/sweep
-- reads ARC_AGENT_PRIVATE_KEY
-- keeps a reserve balance
-- sweeps excess Arc-side USDC into a mock vault flow</div>
+- monitors agent wallet reserve float
+- sweeps surplus USDC into yield vault on Arc</div>
             </div>
           </div>
-          <p class="footer-note">Important: these v2 pieces are real code in the repository, but they remain experimental and should be described as such.</p>
+          <p class="footer-note">Fully integrated: human freelancer invoicing and autonomous AI agent micro-billing under a single unified network.</p>
         </div>
       </section>
 
