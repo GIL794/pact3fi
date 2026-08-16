@@ -56,8 +56,11 @@ export const ALGO_NETWORKS = {
   },
 };
 
-// Default network is testnet for development/hackathon purposes
 export const ACTIVE_ALGO_NETWORK = ALGO_NETWORKS.testnet;
+
+export const ALGO_PLATFORM_WALLET =
+  process.env.NEXT_PUBLIC_ALGO_PLATFORM_WALLET ||
+  'P2R5H7P7KP7N5L2G5F4F5E6D7C8B9A1Z2Y3X4W5V6U7T8S1A2B3C4D5E6F7G8H9';
 
 export type AlgoCurrency = 'USDC' | 'EURC' | 'ALGO';
 

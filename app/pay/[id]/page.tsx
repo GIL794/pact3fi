@@ -8,7 +8,7 @@ import PactopusLogo from '@/components/PactopusLogo';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { CURRENCY_CONFIG, ARC_CHAIN, getTxLink, parseTokenAmount, PLATFORM_FEE_BPS, PLATFORM_WALLET } from '@/lib/arc';
-import { getAlgoTxLink } from '@/lib/algo';
+import { getAlgoTxLink, ALGO_PLATFORM_WALLET } from '@/lib/algo';
 import { recordMilestone } from '@/lib/milestones';
 import type { Invoice } from '@/lib/store';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -94,7 +94,7 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
             txn: {
               type: 'axfer',
               from: address,
-              to: 'P2R5H7P7KP7N5L2G5F4F5E6D7C8B9A1Z2Y3X4W5V6U7T8S1A2B3C4D5E6F7G8H9', // Platform wallet
+              to: ALGO_PLATFORM_WALLET,
               assetIndex: assetId,
               amount: Math.round(feeAmountVal * 1000000),
             }
