@@ -123,7 +123,7 @@ export default function PactopusCopilot({ onFillForm, currentForm }: PactopusCop
     const desc = currentForm.description || 'services rendered';
     const client = currentForm.recipientName || 'Client';
 
-    const invoiceUrl = 'https://pactopus.com/pay/demo-id'; // placeholder URL representing what is generated
+    const invoiceUrl = 'https://pactopus.com/pay/demo-id';
 
     return {
       email: {

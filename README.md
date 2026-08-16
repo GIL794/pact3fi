@@ -263,7 +263,7 @@ pactopus/
 - Usability testing kit: `docs/usability-testing.md`
 - Synthetic example report: `docs/mock-usability-report.md`
 - Technical handover: `DEVELOPER_LOG.md`
-- Future-facing agentic architecture ideas: `PACTOPUS_V2_BLUEPRINT.md`
+- Autonomous agentic architecture: `PACTOPUS_BLUEPRINT.md`
 
 ## Presentation
 
@@ -272,7 +272,7 @@ pactopus/
 - The invoicing problem
 - Arc and Algorand workspaces
 - The adaptive octopus metaphor
-- Experimental HTTP 402 and sweep flows
+- Programmatic HTTP 402 and yield sweep flows
 
 ---
 
