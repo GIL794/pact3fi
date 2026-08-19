@@ -1,0 +1,127 @@
+export const SENSITIVE_ENV_NAMES: string[] = [
+  "DATABASE_URL",
+  "ARC_AGENT_PRIVATE_KEY",
+  "PAYMASTER_SIGNER_KEY",
+  "PAYMASTER_MIN_ALLOWANCE_RAW",
+  "PAYMASTER_DAILY_BUDGET_RAW",
+  "CIRCLE_API_KEY",
+  "CIRCLE_ENTITY_SECRET",
+  "TEST_API_KEY",
+  "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
+  "NEXT_PUBLIC_ALGO_PLATFORM_WALLET",
+  "NEXT_PUBLIC_PLATFORM_WALLET",
+];
+
+const MUST_HAVE: string[] = [
+  "DATABASE_URL",
+  "ARC_AGENT_PRIVATE_KEY",
+  "CIRCLE_API_KEY",
+  "CIRCLE_ENTITY_SECRET",
+  "PAYMASTER_SIGNER_KEY",
+  "NEXT_PUBLIC_USDC_ADDRESS",
+  "NEXT_PUBLIC_PLATFORM_WALLET",
+];
+
+const REMEDIATION_HINTS: Record<string, string> = {
+  DATABASE_URL: "set Neon PostgreSQL URL in Vercel env",
+  ARC_AGENT_PRIVATE_KEY: "export Arc agent 0x-prefixed private key from Coinbase AgentKit",
+  CIRCLE_API_KEY: "generate Circle Developer-Controlled Wallets API key at https://console.circle.com",
+  CIRCLE_ENTITY_SECRET: "create Circle Entity Secret + RSA keypair per Circle docs",
+  PAYMASTER_SIGNER_KEY: "0x-prefused ECDSA private key that sponsors gas via paymaster",
+  NEXT_PUBLIC_USDC_ADDRESS: "USDC token contract address (0x + 40 hex chars) on target chain",
+  NEXT_PUBLIC_PLATFORM_WALLET: "Pactopus platform treasury address (0x + 40 hex chars, EVM-compatible)",
+};
+
+function isPlaceholderValue(value: string | undefined): boolean {
+  if (value === undefined || value === null) return true;
+  const trimmed = String(value).trim();
+  if (trimmed === "") return true;
+  if (/your_private_key_here$/i.test(trimmed)) return true;
+  return false;
+}
+
+function validateStructure(name: string, value: string): string | null {
+  switch (name) {
+    case "NEXT_PUBLIC_USDC_ADDRESS":
+    case "NEXT_PUBLIC_PLATFORM_WALLET": {
+      if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+        return `${name} must be 0x-prefixed 40-char hex address (got ${value.length} chars)`;
+      }
+      break;
+    }
+    case "DATABASE_URL": {
+      if (!value.startsWith("postgresql://")) {
+        return "DATABASE_URL must start with postgresql://";
+      }
+      break;
+    }
+    case "ARC_AGENT_PRIVATE_KEY": {
+      if (!/^0x[a-fA-F0-9]{64}$/.test(value)) {
+        return "ARC_AGENT_PRIVATE_KEY must be 0x-prefixed 64-char hex private key";
+      }
+      break;
+    }
+  }
+  return null;
+}
+
+export function validateCriticalEnvs(opts?: { mode?: "strict" | "warn" }): void {
+  const effectiveMode: "strict" | "warn" =
+    opts?.mode ?? (process.env.NODE_ENV === "production" ? "strict" : "warn");
+
+  const missingItems: Array<{ name: string; reason: string }> = [];
+
+  for (const name of MUST_HAVE) {
+    const raw = process.env[name];
+    if (isPlaceholderValue(raw)) {
+      const hint = REMEDIATION_HINTS[name] ?? "set in environment";
+      missingItems.push({ name, reason: `missing → ${hint}` });
+      continue;
+    }
+    const structErr = validateStructure(name, String(raw));
+    if (structErr) {
+      missingItems.push({ name, reason: `invalid → ${structErr}` });
+    }
+  }
+
+  for (const name of ["DATABASE_URL", "ARC_AGENT_PRIVATE_KEY"]) {
+    const raw = process.env[name];
+    if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+      const structErr = validateStructure(name, String(raw));
+      if (structErr && !missingItems.some((m) => m.name === name)) {
+        missingItems.push({ name, reason: `invalid → ${structErr}` });
+      }
+    }
+  }
+
+  if (missingItems.length === 0) return;
+
+  const lines = missingItems.map(
+    (m) => `  - ${m.name} ${m.reason}`
+  );
+  const message = `[envguard] ${missingItems.length} critical environment issue(s):\n${lines.join("\n")}`;
+
+  if (effectiveMode === "strict") {
+    const err = new Error(message);
+    err.name = "EnvGuardValidationError";
+    throw err;
+  } else {
+    const prefix = "\x1b[33m[envguard] WARN:\x1b[0m";
+    for (const m of missingItems) {
+      console.warn(`${prefix} ${m.name} missing (ok for dev, required for production). Hint: ${REMEDIATION_HINTS[m.name] ?? "set in environment"}`);
+    }
+  }
+}
+
+export function getSafeEnvPublic(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith("NEXT_PUBLIC_")) {
+      const val = process.env[key];
+      if (val !== undefined) {
+        out[key] = val;
+      }
+    }
+  }
+  return out;
+}

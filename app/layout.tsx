@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import "./globals.css";
 import QueryClientSetup from "@/lib/QueryClientProviderSetup";
+import { validateCriticalEnvs } from "@/lib/envguard";
+import { installGlobalLogHooks } from "@/lib/log-redact";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -120,6 +122,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  validateCriticalEnvs();
+  installGlobalLogHooks();
   return (
     <html
       lang="en"

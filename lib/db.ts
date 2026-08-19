@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { validateCriticalEnvs, SENSITIVE_ENV_NAMES } from '@/lib/envguard';
+import { safeLogger } from '@/lib/log-redact';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -11,6 +13,7 @@ function getPrismaClient(): PrismaClient | null {
     return null;
   }
   try {
+    validateCriticalEnvs({ mode: process.env.NODE_ENV === 'production' ? 'strict' : 'warn' });
     const adapter = new PrismaPg({ connectionString: url });
     return (
       globalForPrisma.prisma ??
@@ -20,7 +23,7 @@ function getPrismaClient(): PrismaClient | null {
       })
     );
   } catch (err) {
-    console.warn('[Prisma] Database connection initialization failed, falling back to local storage:', err);
+    safeLogger.warn('[Prisma] Database connection initialization failed, falling back to local storage:', err);
     return null;
   }
 }
