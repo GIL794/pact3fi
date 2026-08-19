@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import { CONTRACTS, ERC20_ABI } from '@/lib/arc';
+import { CONTRACTS } from '@/lib/arc';
+import { createCircleSigner, approveAndDepositToVaultERC4626 } from '@/lib/circle-wallet-kit';
+import { sponsorGasForUserOp, PAYMASTER_CONFIG } from '@/lib/paymaster-kit';
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
 
-// ERC-4626 Vault minimal ABI
 const VAULT_ABI = [
-  ...ERC20_ABI,
   'function deposit(uint256 assets, address receiver) returns (uint256 shares)',
   'function balanceOf(address owner) view returns (uint256)',
 ];
 
-// Mock Yield Vault address on Arc Testnet
 const YIELD_VAULT_ADDRESS = '0x2272dE9f3c7fa6e0000000000000000000000000';
 
 export async function POST(request: NextRequest) {
@@ -21,19 +20,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Configuration Error', message: 'Agent private key not configured.' }, { status: 500 });
     }
 
+    const signer = await createCircleSigner({ privateKey: key, blockchain: 'ARC-TESTNET' });
+
     const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
-    const signer = new ethers.Wallet(key, provider);
+    const usdcBalanceContract = new ethers.Contract(CONTRACTS.USDC, ['function balanceOf(address owner) view returns (uint256)'], provider);
 
-    const usdc = new ethers.Contract(CONTRACTS.USDC, VAULT_ABI, signer);
-    const vault = new ethers.Contract(YIELD_VAULT_ADDRESS, VAULT_ABI, signer);
-
-    // 1. Get current agent balance
-    const balanceRaw = await usdc.balanceOf(signer.address);
+    const balanceRaw = await usdcBalanceContract.balanceOf(signer.address);
     const balance = parseFloat(ethers.formatUnits(balanceRaw, 6));
 
-    // Keep a reserve threshold of 100.00 USDC for transaction gas and liquidity
     const reserveThreshold = 100.00;
-    
+
     if (balance <= reserveThreshold) {
       return NextResponse.json({
         status: 'skipped',
@@ -46,18 +42,31 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Yield Sweep] Sweeping ${sweepAmount} USDC from ${signer.address} to Vault...`);
 
-    // 2. Approve Vault to pull USDC tokens
-    const approveTx = await usdc.approve(YIELD_VAULT_ADDRESS, sweepAmountRaw);
-    await approveTx.wait();
+    console.log(`[Yield Sweep] Recording paymaster gas sponsorship for treasury sweep user op...`);
+    const depositCallDataHex = ethers.hexlify(ethers.toUtf8Bytes(`deposit:${sweepAmountRaw.toString()}:${signer.address}`));
+    const sponsoredSweepOp = await sponsorGasForUserOp({
+      sender: signer.address,
+      nonce: BigInt(0),
+      callData: depositCallDataHex,
+      callGasLimit: BigInt(500000),
+    });
+    console.log(`[Yield Sweep] Paymaster sponsorship recorded. Sponsorship hash: ${sponsoredSweepOp.sponsorshipHash}`);
 
-    // 3. Deposit USDC tokens into the Yield Vault
-    const depositTx = await vault.deposit(sweepAmountRaw, signer.address);
+    console.log(`[Yield Sweep] Executing approve + deposit to ERC-4626 vault via Circle wallet kit...`);
+    const depositTx = await approveAndDepositToVaultERC4626(
+      signer,
+      CONTRACTS.USDC,
+      YIELD_VAULT_ADDRESS,
+      sweepAmountRaw
+    );
+    console.log(`[Yield Sweep] Deposit transaction submitted: ${depositTx.hash}`);
+
     const receipt = await depositTx.wait();
 
     return NextResponse.json({
       status: 'success',
       sweptAmount: sweepAmount.toFixed(6),
-      txHash: receipt?.hash || '',
+      txHash: receipt?.hash || depositTx.hash,
       vault: YIELD_VAULT_ADDRESS,
       message: `Successfully swept ${sweepAmount.toFixed(6)} USDC into the yield vault on Arc.`
     }, { status: 200 });

@@ -336,12 +336,12 @@
             <div class="card">
               <h3>Agentic payment rails</h3>
               <p>Pactopus natively equips autonomous AI agents with programmatic billing and liquidity management.</p>
-              <div class="code">POST /api/v2/invoices
+              <div class="code">POST /api/agent/invoice-create
 - returns HTTP 402 Payment Required
 - verifies Arc USDC nanopayment on-chain
 - mints invoice upon ledger verification
 
-POST /api/v2/sweep
+POST /api/agent/treasury-sweep
 - monitors agent wallet reserve float
 - sweeps surplus USDC into yield vault on Arc</div>
             </div>

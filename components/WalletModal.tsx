@@ -1,10 +1,11 @@
 'use client';
 
 import { useWallet, WalletType } from '@/lib/wallet';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface WalletModalProps {
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 const EVM_WALLETS = [
@@ -108,10 +109,11 @@ const ALGO_WALLETS = [
   },
 ];
 
-export default function WalletModal({ onClose }: WalletModalProps) {
+export default function WalletModal({ onClose, triggerRef }: WalletModalProps) {
   const { connect, isConnecting, isConnected, error, network } = useWallet();
 
   const wallets = network === 'algorand' ? ALGO_WALLETS : EVM_WALLETS;
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Close on success
   useEffect(() => {
@@ -125,13 +127,55 @@ export default function WalletModal({ onClose }: WalletModalProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Focus first element + restore trigger on unmount
+  useEffect(() => {
+    if (!modalRef.current) return;
+    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+      'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable?.[0];
+    first?.focus();
+    return () => {
+      triggerRef?.current?.focus();
+    };
+  }, [triggerRef]);
+
+  // Focus trap
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    if (!modalRef.current) return;
+    const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+      'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      ref={modalRef}
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wallet-modal-title"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      style={{ overscrollBehavior: 'contain' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="modal" id="wallet-connect-modal">
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div>
-            <h2 className="heading-lg">Connect your {network === 'algorand' ? 'Algorand' : 'Arc (EVM)'} wallet</h2>
+            <h2 id="wallet-modal-title" className="heading-lg">Connect your {network === 'algorand' ? 'Algorand' : 'Arc (EVM)'} wallet</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
               Choose a wallet to receive stablecoin payments in the Pactopus workspace tailored to this chain
             </p>
@@ -139,7 +183,7 @@ export default function WalletModal({ onClose }: WalletModalProps) {
           <button
             onClick={onClose}
             style={{ color: 'var(--text-muted)', fontSize: '1.25rem', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}
-            aria-label="Close"
+            aria-label="Close wallet modal"
           >
             ✕
           </button>

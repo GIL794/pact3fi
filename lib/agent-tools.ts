@@ -1,14 +1,12 @@
 import { z } from 'zod';
 import { ethers } from 'ethers';
-import { CONTRACTS, PLATFORM_WALLET, ERC20_ABI, parseTokenAmount, PLATFORM_FEE_BPS } from './arc';
+import { CONTRACTS, PLATFORM_WALLET, parseTokenAmount, PLATFORM_FEE_BPS } from './arc';
+import { createCircleSigner, sendERC20Transfer } from '@/lib/circle-wallet-kit';
+import { createSponsoredERC20Transfer, verifySponsoredOp, PAYMASTER_CONFIG } from '@/lib/paymaster-kit';
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
 
 export const pactopusAgentTools = {
-  /**
-   * Tool to create an invoice autonomously.
-   * If the endpoint requires HTTP 402 nanopayment, the agent wallet signs and pays the fee.
-   */
   createInvoiceTool: {
     description: 'Creates a stablecoin invoice request on Pactopus, paying the HTTP 402 fee autonomously on Arc L1.',
     parameters: z.object({
@@ -23,15 +21,13 @@ export const pactopusAgentTools = {
     execute: async ({ amount, currency, description, recipientAddress, recipientName, agentPrivateKey, apiBaseUrl }: any) => {
       try {
         const payload = { amount, currency, description, recipientAddress, recipientName };
-        
-        // 1. Initial attempt to create invoice
-        const res = await fetch(`${apiBaseUrl}/api/v2/invoices`, {
+
+        const res = await fetch(`${apiBaseUrl}/api/agent/invoice-create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
-        // 2. Handle HTTP 402 Payment Required
         if (res.status === 402) {
           const payDetails = await res.json();
           const target = payDetails.paymentTarget || PLATFORM_WALLET;
@@ -40,24 +36,27 @@ export const pactopusAgentTools = {
 
           console.log(`[Pactopus Agent] HTTP 402 Received. Paying ${payAmount} USDC nanopayment on Arc to ${target}...`);
 
-          // Setup Ethers provider and signer
-          const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
-          const signer = new ethers.Wallet(agentPrivateKey, provider);
-          
-          // Construct token transfer contract instance
-          const token = new ethers.Contract(assetAddress, ERC20_ABI, signer);
+          const signer = await createCircleSigner({ privateKey: agentPrivateKey, blockchain: 'ARC-TESTNET' });
           const rawAmount = parseTokenAmount(payAmount, 6);
 
-          // Submit the transfer transaction
-          const tx = await token.transfer(target, rawAmount);
+          console.log(`[Pactopus Agent] Recording paymaster sponsorship for nanopayment...`);
+          const sponsoredOp = await createSponsoredERC20Transfer({
+            from: signer.address,
+            senderPrivateKey: agentPrivateKey,
+            tokenAddress: assetAddress,
+            to: target,
+            amountRaw: rawAmount,
+          });
+          console.log(`[Pactopus Agent] Paymaster sponsorship recorded. Sponsor tx hash: ${sponsoredOp.txHash || sponsoredOp.sponsorship?.sponsorshipHash || 'pending'}`);
+
+          console.log(`[Pactopus Agent] Executing actual ERC-20 nanopayment transfer via Circle wallet kit...`);
+          const tx = await sendERC20Transfer(signer, assetAddress, target, rawAmount);
           console.log(`[Pactopus Agent] Nanopayment transaction submitted: ${tx.hash}`);
-          
-          // Wait for block finality
+
           await tx.wait();
           console.log(`[Pactopus Agent] Nanopayment transaction confirmed.`);
 
-          // 3. Retry invoice creation with transaction hash
-          const retryRes = await fetch(`${apiBaseUrl}/api/v2/invoices`, {
+          const retryRes = await fetch(`${apiBaseUrl}/api/agent/invoice-create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -100,9 +99,6 @@ export const pactopusAgentTools = {
     },
   },
 
-  /**
-   * Tool to pay a pending invoice, executing both net amount and fee transfers on-chain.
-   */
   payInvoiceTool: {
     description: 'Pays a Pactopus invoice autonomously, routing both recipient payout and platform fee on-chain.',
     parameters: z.object({
@@ -112,7 +108,6 @@ export const pactopusAgentTools = {
     }),
     execute: async ({ invoiceId, agentPrivateKey, apiBaseUrl }: any) => {
       try {
-        // 1. Fetch invoice details
         const invoiceRes = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`);
         if (!invoiceRes.ok) throw new Error('Invoice not found');
         const { invoice } = await invoiceRes.json();
@@ -121,32 +116,47 @@ export const pactopusAgentTools = {
           return { status: 'success', message: 'Invoice was already paid.' };
         }
 
-        // Setup Ethers
-        const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
-        const signer = new ethers.Wallet(agentPrivateKey, provider);
+        const signer = await createCircleSigner({ privateKey: agentPrivateKey, blockchain: 'ARC-TESTNET' });
 
         const assetAddress = invoice.currency === 'USDC' ? CONTRACTS.USDC : CONTRACTS.EURC;
-        const token = new ethers.Contract(assetAddress, ERC20_ABI, signer);
 
         const rawAmount = parseTokenAmount(invoice.amount, 6);
         const feeRaw = (rawAmount * BigInt(PLATFORM_FEE_BPS)) / BigInt(10000);
         const netRaw = rawAmount - feeRaw;
 
         console.log(`[Pactopus Agent] Transferring net amount ${ethers.formatUnits(netRaw, 6)} ${invoice.currency} to payee...`);
-        // Transfer 1: Payee payout
-        const payoutTx = await token.transfer(invoice.recipientAddress, netRaw);
+
+        console.log(`[Pactopus Agent] Recording paymaster sponsorship for payee payout transfer...`);
+        const sponsoredPayoutOp = await createSponsoredERC20Transfer({
+          from: signer.address,
+          senderPrivateKey: agentPrivateKey,
+          tokenAddress: assetAddress,
+          to: invoice.recipientAddress,
+          amountRaw: netRaw,
+        });
+        console.log(`[Pactopus Agent] Payee payout paymaster sponsorship recorded. Sponsor tx hash: ${sponsoredPayoutOp.txHash || sponsoredPayoutOp.sponsorship?.sponsorshipHash || 'pending'}`);
+
+        const payoutTx = await sendERC20Transfer(signer, assetAddress, invoice.recipientAddress, netRaw);
         console.log(`[Pactopus Agent] Payout Tx Hash: ${payoutTx.hash}`);
 
         console.log(`[Pactopus Agent] Transferring fee amount ${ethers.formatUnits(feeRaw, 6)} ${invoice.currency} to platform...`);
-        // Transfer 2: Platform fee transfer
-        const feeTx = await token.transfer(PLATFORM_WALLET, feeRaw);
+
+        console.log(`[Pactopus Agent] Recording paymaster sponsorship for platform fee transfer...`);
+        const sponsoredFeeOp = await createSponsoredERC20Transfer({
+          from: signer.address,
+          senderPrivateKey: agentPrivateKey,
+          tokenAddress: assetAddress,
+          to: PLATFORM_WALLET,
+          amountRaw: feeRaw,
+        });
+        console.log(`[Pactopus Agent] Platform fee paymaster sponsorship recorded. Sponsor tx hash: ${sponsoredFeeOp.txHash || sponsoredFeeOp.sponsorship?.sponsorshipHash || 'pending'}`);
+
+        const feeTx = await sendERC20Transfer(signer, assetAddress, PLATFORM_WALLET, feeRaw);
         console.log(`[Pactopus Agent] Fee Tx Hash: ${feeTx.hash}`);
 
-        // Wait for finalities
         await payoutTx.wait();
         await feeTx.wait();
 
-        // 2. Submit payment confirmation to backend
         const confirmRes = await fetch(`${apiBaseUrl}/api/pay`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

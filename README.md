@@ -163,7 +163,7 @@ Pactopus natively equips automated scripts and AI agents with programmatic billi
 
 ### HTTP 402 Invoice Creation
 
-Route: `/api/v2/invoices`
+Route: `/api/agent/invoice-create`
 
 - Returns `402 Payment Required` when the invoice creation nanopayment has not been made
 - Verifies the Arc payment on-chain once a transaction hash is supplied
@@ -178,7 +178,7 @@ File: `lib/agent-tools.ts`
 
 ### DeFi Yield Sweeper
 
-Route: `/api/v2/sweep`
+Route: `/api/agent/treasury-sweep`
 
 - Monitors agent wallet float
 - Retains an operational reserve balance (100 USDC)

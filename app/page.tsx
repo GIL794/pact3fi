@@ -7,10 +7,12 @@ import Navbar from '@/components/Navbar';
 import PactopusLogo from '@/components/PactopusLogo';
 import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
+import SubscriptionModal from '@/components/SubscriptionModal';
+import WorkspaceOverlay from '@/components/WorkspaceOverlay';
+import SavingsHeroSlider from '@/components/SavingsHeroSlider';
 import { CURRENCY_CONFIG, ARC_CHAIN, parseTokenAmount, PLATFORM_WALLET } from '@/lib/arc';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Animated particle canvas
 function Particles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -66,7 +68,6 @@ function Particles() {
         ctx.fillStyle = `${p.color}${p.alpha})`;
         ctx.fill();
       });
-      // Draw connections
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -96,283 +97,6 @@ function Particles() {
   );
 }
 
-interface SubscriptionModalProps {
-  plan: 'free' | 'pro' | 'business';
-  price: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-function SubscriptionModal({ plan, price, onClose, onSuccess }: SubscriptionModalProps) {
-  const { isConnected, isWrongNetwork, switchNetwork, address, network } = useWallet();
-  const [step, setStep] = useState<'review' | 'paying' | 'success' | 'error'>('review');
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [error, setError] = useState('');
-  const [txHash, setTxHash] = useState('');
-
-  const payMutation = useMutation({
-    mutationFn: async () => {
-      if (!isConnected) {
-        setShowWalletModal(true);
-        throw new Error('Please connect a wallet to continue.');
-      }
-
-      if (network === 'algorand') {
-        const planAmountUSDC = plan === 'pro' ? 15 : 50;
-        const algo = (window as any).algorand || (window as any).algo;
-        if (!algo) throw new Error('No Algorand wallet found. Install Pera Wallet (or an injected Algorand wallet) and try again.');
-
-        const txParams = {
-          from: address,
-          to: 'P2R5H7P7KP7N5L2G5F4F5E6D7C8B9A1Z2Y3X4W5V6U7T8S1A2B3C4D5E6F7G8H9', // Platform wallet
-          assetId: 10458941, // USDC Asset ID
-          amount: Math.round(planAmountUSDC * 1000000), // 6 decimals
-        };
-
-        const result = await algo.signTxns([{ txn: txParams }]);
-        return result[0]?.txID || 'algo-tx-' + Math.random().toString(36).slice(2);
-      }
-
-      // EVM (Arc L1)
-      if (isWrongNetwork) {
-        await switchNetwork();
-      }
-
-      const provider = (window as any).ethereum;
-      if (!provider) throw new Error('No Arc/EVM wallet found. Install MetaMask (or use WalletConnect) and try again.');
-
-      const planAmountUSDC = plan === 'pro' ? '15.0' : '50.0';
-      const config = CURRENCY_CONFIG.USDC;
-      const rawAmount = parseTokenAmount(planAmountUSDC);
-
-      const funcSelector = '0xa9059cbb';
-      const encodedTo = PLATFORM_WALLET.slice(2).padStart(64, '0');
-      const encodedAmt = rawAmount.toString(16).padStart(64, '0');
-      const data = funcSelector + encodedTo + encodedAmt;
-
-      const txParams = {
-        from: address,
-        to: config.address,
-        data,
-        chainId: `0x${ARC_CHAIN.id.toString(16)}`,
-      };
-
-      return await provider.request({
-        method: 'eth_sendTransaction',
-        params: [txParams],
-      });
-    },
-    onMutate: () => {
-      setStep('paying');
-      setError('');
-    },
-    onSuccess: async (hash: string) => {
-      setTxHash(hash);
-      try {
-        const res = await fetch('/api/pay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            txHash: hash,
-            tier: plan,
-          }),
-        });
-        const data2 = await res.json();
-        if (!res.ok) {
-          throw new Error(data2.error || 'We could not confirm that payment. Please try again.');
-        }
-
-        localStorage.setItem('pactopus_subscription', plan);
-        setStep('success');
-      } catch (err: any) {
-        setError(err.message || 'We couldn’t confirm that payment. Please try again.');
-        setStep('error');
-      }
-    },
-    onError: (err: any) => {
-      if (err.message === 'Please connect a wallet to continue.') return;
-      setError(err.message || 'Transaction failed');
-      setStep('error');
-    }
-  });
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 className="heading-lg" style={{ textTransform: 'capitalize' }}>Upgrade to {plan}</h3>
-          <button className="btn-close" onClick={onClose}>×</button>
-        </div>
-
-        {step === 'review' && (
-          <div>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              Confirm your subscription upgrade. You will pay in USDC on {network === 'algorand' ? 'Algorand' : 'Arc'}.
-            </p>
-            <div className="card-flat" style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span>Subtotal</span>
-                <span>{price === '£12' ? '15.00 USDC' : price === '£49' ? '50.00 USDC' : '0.00 USDC'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
-                <span>Total Due</span>
-                <span className="gradient-text-gold">{price === '£12' ? '15.00 USDC' : price === '£49' ? '50.00 USDC' : '0.00 USDC'}</span>
-              </div>
-            </div>
-            <button className="btn btn-primary btn-full" onClick={() => payMutation.mutate()}>
-              Confirm Escrow & Upgrade
-            </button>
-          </div>
-        )}
-
-        {step === 'paying' && (
-          <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <div className="loader" style={{ margin: '0 auto 1.5rem' }} />
-            <h4 className="heading-md" style={{ marginBottom: '0.5rem' }}>Confirming Payment</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              Confirm the transaction in your wallet to lock payment.
-            </p>
-            {txHash && (
-              <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Hash: {txHash.slice(0, 12)}...
-              </p>
-            )}
-          </div>
-        )}
-
-        {step === 'success' && (
-          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛡️</div>
-            <h4 className="heading-md" style={{ marginBottom: '0.5rem' }}>[ Payment Successful ]</h4>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Your account has been bound by code to the {plan} tier.
-            </p>
-            <button className="btn btn-primary btn-full" onClick={onSuccess}>
-              Go to Dashboard
-            </button>
-          </div>
-        )}
-
-        {step === 'error' && (
-          <div>
-            <div style={{ color: 'var(--accent-red)', fontSize: '2.5rem', textAlign: 'center', marginBottom: '1rem' }}>⚠️</div>
-            <h4 className="heading-md" style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Payment didn’t go through</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-              {error}
-            </p>
-            <button className="btn btn-primary btn-full" onClick={() => setStep('review')}>
-              Retry Signing
-            </button>
-          </div>
-        )}
-      </div>
-      {showWalletModal && <WalletModal onClose={() => setShowWalletModal(false)} />}
-    </div>
-  );
-}
-
-// Fullscreen Workspace Selection Overlay for Double Injected Wallet Extension Case
-function WorkspaceOverlay({ onSelect }: { onSelect: (network: 'arc' | 'algorand') => void }) {
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 99999,
-      background: 'rgba(10, 10, 18, 0.55)',
-      backdropFilter: 'blur(20px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem'
-    }}>
-      <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-xl)',
-        padding: '3rem 2.5rem',
-        maxWidth: '850px',
-        width: '100%',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Glow Effects */}
-        <div style={{ position: 'absolute', top: -150, left: '20%', width: 320, height: 320, background: 'radial-gradient(circle, rgba(var(--brand-secondary-rgb),0.22), transparent)', filter: 'blur(60px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -160, right: '20%', width: 360, height: 360, background: 'radial-gradient(circle, rgba(var(--brand-rgb),0.18), transparent)', filter: 'blur(70px)', pointerEvents: 'none' }} />
-
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ margin: '0 auto 1.5rem', display: 'flex', justifyContent: 'center' }}>
-            <PactopusLogo height={52} />
-          </div>
-          <h2 className="heading-xl" style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Multiple Wallets Detected</h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            Both EVM (MetaMask/Coinbase) and Algorand extensions were found. Choose the workspace Pactopus should activate, and the interface will recolor in milliseconds to match that chain.
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '2.5rem' }}>
-          {/* Arc Option */}
-          <div
-            className="card select-card"
-            style={{
-              padding: '2.25rem 1.75rem',
-              cursor: 'pointer',
-              border: '1px solid rgba(255,182,72,0.28)',
-              background: 'var(--bg-card)',
-              transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '100%'
-            }}
-            onClick={() => onSelect('arc')}
-          >
-            <div>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }}>🏛️</div>
-              <h3 className="heading-md" style={{ marginBottom: '0.75rem', color: 'var(--accent-gold)' }}>Arc L1 Network</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Pick Arc for an Arc-tailored workspace, quick settlement, and a warm coral-and-mango palette that feels right at home.
-              </p>
-            </div>
-            <button className="btn btn-secondary btn-full" style={{ borderColor: 'rgba(255,182,72,0.45)' }}>
-              Enter Arc Workspace
-            </button>
-          </div>
-
-          {/* Algorand Option */}
-          <div
-            className="card select-card"
-            style={{
-              padding: '2.25rem 1.75rem',
-              cursor: 'pointer',
-              border: '1px solid rgba(0,183,176,0.28)',
-              background: 'var(--bg-card)',
-              transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '100%'
-            }}
-            onClick={() => onSelect('algorand')}
-          >
-            <div>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }}>⚡</div>
-              <h3 className="heading-md" style={{ marginBottom: '0.75rem', color: 'var(--accent-cyan)' }}>Algorand Vault</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Pick Algorand for a bright ocean-teal workspace, super smooth confirmations, and wallet support via Pera or injected providers.
-              </p>
-            </div>
-            <button className="btn btn-secondary btn-full" style={{ borderColor: 'rgba(0,183,176,0.45)' }}>
-              Enter Algorand Workspace
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -381,8 +105,8 @@ function HomeContent() {
 
   const [showSubModal, setShowSubModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ plan: 'free' | 'pro' | 'business', price: string } | null>(null);
+  const subModalTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // TanStack Query to check browser-injected wallets
   const { data: extensions } = useQuery({
     queryKey: ['injectedWallets'],
     queryFn: async () => {
@@ -397,11 +121,9 @@ function HomeContent() {
   const [overlayDecided, setOverlayDecided] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
 
-  // Sync network state and handle smart redirections
   useEffect(() => {
     if (typeof window === 'undefined' || !extensions) return;
 
-    // 1. Prioritize dynamic query parameter URL setting
     if (queryNetwork === 'algorand') {
       setNetwork('algorand');
       setOverlayDecided(true);
@@ -414,7 +136,6 @@ function HomeContent() {
       return;
     }
 
-    // 2. Check for active saved session
     const saved = localStorage.getItem('pactopus_wallet');
     if (saved) {
       try {
@@ -428,7 +149,6 @@ function HomeContent() {
       } catch { /* ignore */ }
     }
 
-    // 3. Fallback to extension detection logic
     if (extensions.evm && !extensions.algo) {
       setNetwork('arc');
       setOverlayDecided(true);
@@ -466,9 +186,43 @@ function HomeContent() {
 
   return (
     <div style={{ minHeight: '100vh' }}>
-      {showOverlay && <WorkspaceOverlay onSelect={handleWorkspaceChoice} />}
+      <a
+        href="#main"
+        style={{
+          position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.position = 'fixed';
+          e.currentTarget.style.left = '1rem';
+          e.currentTarget.style.top = '1rem';
+          e.currentTarget.style.zIndex = '9999';
+          e.currentTarget.style.width = 'auto';
+          e.currentTarget.style.height = 'auto';
+          e.currentTarget.style.overflow = 'visible';
+          e.currentTarget.style.padding = '0.75rem 1.25rem';
+          e.currentTarget.style.borderRadius = '16px';
+          e.currentTarget.style.backgroundColor = 'var(--bg-card)';
+          e.currentTarget.style.color = 'var(--text-primary)';
+          e.currentTarget.style.border = '1px solid var(--brand)';
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.position = 'absolute';
+          e.currentTarget.style.left = '-9999px';
+          e.currentTarget.style.width = '1px';
+          e.currentTarget.style.height = '1px';
+          e.currentTarget.style.overflow = 'hidden';
+          e.currentTarget.style.padding = '0';
+          e.currentTarget.style.border = 'none';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      >Skip to main content</a>
 
-      <Navbar />
+      <header style={{ position: 'sticky', top: 0, zIndex: 999 }}>
+        <Navbar />
+      </header>
+
+      <main id="main">
 
       {/* ── Hero ─────────────────────────────────────── */}
       <section style={{ position: 'relative', paddingTop: '8rem', paddingBottom: '6rem', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
@@ -482,59 +236,77 @@ function HomeContent() {
         <div className="container" style={{ position: 'relative', textAlign: 'center' }}>
           {/* Eyebrow Tag */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <span className="badge badge-cyan" style={{ border: '1px solid var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0.5rem 1rem' }}>
-              <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-gold)', marginRight: '0.5rem', boxShadow: '0 0 8px var(--accent-gold)' }} />
-              [ {isAlgo ? 'Pactopus for Algorand' : 'Pactopus for Arc'} ]
+            <span className="badge badge-cyan" style={{ border: '1px solid var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0.5rem 1rem', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                display: 'inline-block',
+                width: 9,
+                height: 9,
+                borderRadius: '50%',
+                background: 'var(--accent-gold)',
+                boxShadow: '0 0 10px var(--accent-gold), 0 0 20px rgba(var(--brand-rgb),0.5)',
+                animation: 'pulse 1.4s cubic-bezier(.2,.8,.2,1) infinite',
+              }} />
+              [ {isAlgo ? 'Pactopus for Algorand' : 'Pactopus for Arc'} ] — 8 arms. 1 invoice.
             </span>
           </div>
 
           {/* Latin Legal Accent */}
           <div style={{ fontStyle: 'italic', fontSize: '0.75rem', letterSpacing: '0.12em', color: 'var(--accent-gold)', marginBottom: '1rem', textTransform: 'uppercase' }}>
-            Friendly invoicing. Serious settlement.
+            Ink-redible invoicing. Seriously final settlement.
           </div>
 
           {/* Headline */}
           <h1 className="display-xl" style={{ maxWidth: 950, margin: '0 auto 1.5rem', lineHeight: '1.15' }}>
             Send Invoices.<br />
-            Adapt in <span className="gradient-text-gold">Milliseconds</span>.
+            Tentacles Adapt in <span className="gradient-text-gold">Milliseconds</span>.
           </h1>
 
           {/* Subheadline */}
           <p className="body-lg" style={{ color: 'var(--text-secondary)', maxWidth: 680, margin: '0 auto 2.5rem', lineHeight: '1.7' }}>
-            Pactopus shifts its colors in milliseconds to match {isAlgo ? 'Algorand' : 'Arc'} - like an octopus reacting to its surroundings. Create an invoice, share a link, and get paid on {isAlgo ? 'Algorand' : 'Arc'} without changing your flow.
+            Pactopus shifts colors faster than a reef octopus spotting a predator — one millisecond it's {isAlgo ? 'teal-for-Algorand' : 'mango-for-Arc'}, the next it's ready to get you paid. Build an invoice, drop a link, and watch your USDC swim home.
           </p>
+
+          <SavingsHeroSlider />
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
-            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="hero-create-invoice-btn" style={{ minWidth: 200 }}>
-              Create an invoice
+            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="hero-create-invoice-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
+              🐙 Create an invoice
             </Link>
-            <Link href="/onboarding" className="btn btn-secondary btn-lg" id="hero-learn-more-btn" style={{ minWidth: 200 }}>
-              See how it works
+            <Link href="/onboarding" className="btn btn-secondary btn-lg" id="hero-learn-more-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
+              📚 See how it works
             </Link>
           </div>
 
           <div style={{ marginBottom: '3rem' }}>
             <span className="badge badge-cyan" style={{ padding: '0.6rem 1rem', fontSize: '0.78rem', letterSpacing: '0.04em' }}>
               {isAlgo
-                ? 'Algorand workspace - ocean teal + green highlights.'
-                : 'Arc workspace - warm mango + coral highlights.'}
+                ? '🌊 Algorand workspace — ocean teal + deep green camouflage active.'
+                : '🌅 Arc workspace — warm mango + coral camouflage active.'}
             </span>
           </div>
 
           {/* Social proof stats */}
-          <div style={{ display: 'flex', gap: '3rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
-              { value: isAlgo ? '1.5s' : '<1s', label: isAlgo ? 'Block finality' : 'Instant finality' },
-              { value: '0.5%', label: 'Platform fee (vs 2.9% Stripe)' },
-              { value: isAlgo ? 'tiny' : 'tiny', label: 'Network fees (usually small)' },
-              { value: '6×', label: 'Cheaper than bank wires' },
+              { value: isAlgo ? '1.5s' : '<1s', label: isAlgo ? 'Block finality (faster than you can say "cephalopod")' : 'Instant finality (faster than ink can dry)' },
+              { value: '0.5%', label: 'Platform fee (vs 2.9% Stripe — your wallet thanks all 3 hearts)' },
+              { value: '£0', label: 'Network fees (usually — we don\'t charge tentacle tax)' },
+              { value: '6×', label: 'Cheaper than bank wires (and way fewer tentacles involved)' },
             ].map(stat => (
-              <div key={stat.label} style={{ textAlign: 'center' }}>
+              <div key={stat.label} style={{
+                textAlign: 'center',
+                flex: '1 1 150px',
+                padding: '1rem 0.75rem',
+                borderRadius: 20,
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+              }}>
                 <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>
                   {stat.value}
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
                   {stat.label}
                 </div>
               </div>
@@ -578,9 +350,12 @@ function HomeContent() {
       <section style={{ padding: '6rem 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>How it works</p>
-            <h2 className="display-md">How Pactopus Works</h2>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Many arms, one flow, instantly adapted to the active chain</p>
+            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>🐙 How it works</p>
+            <h2 className="display-md">Three Hearts. Eight Arms. One Killer Flow.</h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem', lineHeight: 1.7, maxWidth: 620, marginInline: 'auto' }}>
+              Three hearts. One for you. One for your client. One to keep blocks finalizing fast.<br />
+              Pactopus juggles the chains so you don\'t have to — every tentacle doing exactly what it does best.
+            </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -588,39 +363,110 @@ function HomeContent() {
               {
                 step: 'I',
                 icon: '📜',
-                title: 'Create an invoice',
-                desc: `Add the amount, a short description, and your wallet address. Pactopus already matches the ${isAlgo ? 'Algorand' : 'Arc'} look and feel.`,
+                title: 'Draft your invoice',
+                desc: [
+                  `Add the amount, a fun description, and your wallet.`,
+                  `Pactopus has already camouflaged itself for ${isAlgo ? 'Algorand' : 'Arc'} — no setup required.`,
+                  `Save 3 clicks. Save 30 seconds. Feed all 3 hearts.`,
+                ].join('\n'),
                 color: 'var(--accent-gold)',
               },
               {
                 step: 'II',
-                icon: '⚖️',
-                title: 'Share the link',
-                desc: 'Send the payment link to your client. They can pay straight from their wallet.',
+                icon: '🔗',
+                title: 'Share the ink-link',
+                desc: [
+                  `Drop the payment link anywhere — email, Slack, carrier pigeon.`,
+                  `Your client lands on a branded, clean page that matches the chain.`,
+                  `They click Pay. You sit back. Tentacles do the rest.`,
+                ].join('\n'),
                 color: 'var(--accent-red)',
               },
               {
                 step: 'III',
-                icon: '🏛️',
-                title: 'Get paid',
-                desc: `Your client confirms in their wallet and the payment settles on ${isAlgo ? 'Algorand' : 'Arc'} in seconds.`,
+                icon: '💸',
+                title: 'Get paid in seconds',
+                desc: [
+                  `One wallet confirmation, done.`,
+                  `Settles on ${isAlgo ? 'Algorand' : 'Arc'} faster than a startled octopus jets.`,
+                  `No chargebacks. No surprises. Just settled funds.`,
+                ].join('\n'),
                 color: 'var(--accent-gold)',
               },
             ].map(item => (
-              <div key={item.step} className="card" style={{ textAlign: 'center', padding: '2.5rem 2rem', borderTop: `2px solid ${item.color}` }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: '50%',
-                  background: `${item.color}18`,
-                  border: `1px solid ${item.color}30`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 1.25rem',
-                  fontSize: '1.5rem',
-                }}>
-                  {item.icon}
+              <div
+                key={item.step}
+                className="card"
+                style={{
+                  textAlign: 'left',
+                  padding: '2.5rem 2rem',
+                  borderRadius: 24,
+                  backgroundColor: 'var(--bg-card)',
+                  backgroundImage: `linear-gradient(180deg, ${item.color}10 0%, rgba(255,255,255,0.02) 100%)`,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 40px rgba(0,0,0,0.3)',
+                  border: `1px solid ${item.color}22`,
+                  transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease, border-color 220ms ease',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(-6px)';
+                  el.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 50px rgba(0,0,0,0.4)';
+                  el.style.borderBottom = `3px solid ${item.color}`;
+                  const icon = el.querySelector('.how-icon-circle') as HTMLDivElement | null;
+                  if (icon) icon.style.transform = 'scale(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 40px rgba(0,0,0,0.3)';
+                  el.style.borderBottom = `1px solid ${item.color}22`;
+                  const icon = el.querySelector('.how-icon-circle') as HTMLDivElement | null;
+                  if (icon) icon.style.transform = 'scale(1)';
+                }}
+              >
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+                    <div
+                      className="how-icon-circle"
+                      style={{
+                        width: 56, height: 56, borderRadius: '50%',
+                        background: `${item.color}18`,
+                        border: `2px solid ${item.color}44`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.5rem',
+                        transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), border-color 220ms ease',
+                        position: 'relative',
+                      }}
+                    >
+                      {item.icon}
+                    </div>
+                    <div
+                      style={{
+                        width: 38, height: 38, borderRadius: '50%',
+                        border: `3px solid ${item.color}55`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 800,
+                        color: item.color,
+                        fontSize: '0.85rem',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {item.step}
+                    </div>
+                  </div>
+                  <h3 className="heading-md" style={{ marginBottom: '0.75rem' }}>{item.title}</h3>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.7 }}>
+                    {item.desc.split('\n').map((bullet, bi) => (
+                      <div key={bi} style={{ display: 'flex', gap: '0.5rem', marginBottom: bi < 2 ? '0.35rem' : 0 }}>
+                        <span style={{ color: item.color, flexShrink: 0 }}>•</span>
+                        <span>{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="label" style={{ color: item.color, marginBottom: '0.5rem' }}>Step {item.step}</div>
-                <h3 className="heading-md" style={{ marginBottom: '0.75rem' }}>{item.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.65 }}>{item.desc}</p>
               </div>
             ))}
           </div>
@@ -631,42 +477,119 @@ function HomeContent() {
       <section style={{ padding: '5rem 0', background: 'var(--bg-surface)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label" style={{ color: 'var(--accent-red)', marginBottom: '0.75rem' }}>The Law of Exchange</p>
-            <h2 className="display-md">Old way vs Pactopus</h2>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem' }}>Based on a £5,000 monthly invoice</p>
+            <p className="label" style={{ color: 'var(--accent-red)', marginBottom: '0.75rem' }}>⚖️ The Showdown</p>
+            <h2 className="display-md">Old Legacy vs Pactopus Tentacle</h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
+              Crunched on a £5,000 monthly invoice. The numbers don\'t lie — and neither do octopuses.
+            </p>
           </div>
 
-          <div className="compare-grid" style={{ maxWidth: 720, margin: '0 auto' }}>
-            <div className="compare-card old" style={{ borderTop: '3px solid var(--accent-red)' }}>
+          <div className="compare-grid" style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+            <div
+              className="compare-card old"
+              style={{
+                borderTop: '3px solid var(--accent-red)',
+                borderRadius: 24,
+                padding: '2rem 1.75rem',
+                backgroundColor: 'var(--bg-card)',
+                backgroundImage: 'linear-gradient(180deg, rgba(var(--brand-secondary-rgb),0.08) 0%, rgba(255,255,255,0.015) 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 30px rgba(0,0,0,0.35)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.28)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '0.25rem 0.6rem',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.03)',
+              }}>
+                legacy
+              </div>
               <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🏛️</div>
               <h3 className="heading-md" style={{ marginBottom: '1.5rem', color: 'var(--accent-red)' }}>Bank Wire / Stripe</h3>
               {[
-                ['Settlement', '3–5 business days'],
-                ['Fee', '2.9% + £0.30 = ~£145'],
-                ['Currency risk', 'FX conversion fees'],
-                ['Reversals', 'Chargebacks possible'],
-                ['Hours', 'Business hours only'],
+                ['Settlement speed', '3–5 business days (zzzz… 💤)'],
+                ['Fees on £5k', '2.9% + £0.30 = roughly £145'],
+                ['Currency risk', 'FX conversion nibbles your profit'],
+                ['Reversals', 'Chargebacks possible (gulp)'],
+                ['Operating hours', 'Business hours only (boooring)'],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{k}</span>
-                  <span style={{ color: 'var(--accent-red)' }}>{v}</span>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)', gap: '1rem', minWidth: 0 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', flexShrink: 0 }}>{k}</span>
+                  <span style={{ color: 'var(--accent-red)', fontSize: '0.85rem', whiteSpace: 'normal', textAlign: 'right', wordBreak: 'break-word', minWidth: 0, flex: '1 1 auto' }}>{v}</span>
                 </div>
               ))}
             </div>
 
-            <div className="compare-card new" style={{ borderTop: '3px solid var(--accent-gold)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚡</div>
+            <div
+              className="compare-card new"
+              style={{
+                borderTop: '3px solid var(--accent-gold)',
+                borderRadius: 24,
+                padding: '2rem 1.75rem',
+                backgroundColor: 'var(--bg-card)',
+                backgroundImage: 'linear-gradient(180deg, rgba(var(--brand-rgb),0.10) 0%, rgba(255,255,255,0.02) 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 50px rgba(var(--brand-rgb),0.14)',
+                border: '1px solid rgba(var(--brand-rgb),0.22)',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+            >
+              <svg
+                width="92"
+                height="92"
+                viewBox="0 0 92 92"
+                style={{ position: 'absolute', top: 0, right: 0, pointerEvents: 'none', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))' }}
+              >
+                <defs>
+                  <linearGradient id="ribbon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#fbbf24" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+                <path d="M2 2 L90 2 L90 90 L60 60 L30 90 Z" fill="url(#ribbon-grad)" opacity="0.92" />
+                <text
+                  x="60"
+                  y="34"
+                  fill="#1a0a00"
+                  fontSize="10"
+                  fontWeight="900"
+                  textAnchor="middle"
+                  fontFamily="var(--font-display), system-ui"
+                  letterSpacing="0.08em"
+                  transform="rotate(45, 60, 34)"
+                >
+                  WINNER
+                </text>
+              </svg>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🐙⚡</div>
               <h3 className="heading-md" style={{ marginBottom: '1.5rem', color: 'var(--accent-gold)' }}>Pactopus on {isAlgo ? 'Algorand' : 'Arc'}</h3>
               {[
-                ['Settlement', isAlgo ? '1.5 seconds' : '<1 second'],
-                ['Fee', '0.5% = £25 — save £120'],
-                ['Currency risk', 'Stablecoins = stable value'],
-                ['Reversals', 'Blockchain = irreversible'],
-                ['Hours', '24/7/365'],
+                ['Settlement speed', isAlgo ? '1.5 seconds (blink twice, miss it)' : '<1 second (faster than ink!)'],
+                ['Fees on £5k', '0.5% = £25 — save a clean £120'],
+                ['Currency risk', 'Stablecoins = stable, calm waters 🌊'],
+                ['Reversals', 'Eight arms, zero chargebacks.'],
+                ['Operating hours', '24/7/365 — octopuses don\'t sleep on you'],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{k}</span>
-                  <span style={{ color: 'var(--accent-gold)' }}>{v}</span>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border-subtle)', gap: '1rem', minWidth: 0 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', flexShrink: 0 }}>{k}</span>
+                  <span style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', whiteSpace: 'normal', textAlign: 'right', wordBreak: 'break-word', minWidth: 0, flex: '1 1 auto' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -678,39 +601,111 @@ function HomeContent() {
       <section style={{ padding: '6rem 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>Why it works</p>
-            <h2 className="display-md">Built for fast, friendly payments</h2>
+            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>✨ Why it works</p>
+            <h2 className="display-md">Built with Tentacle-Level Precision</h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
+              Every feature engineered with one goal: getting you paid faster, cheaper, and with way more personality.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
             {[
               {
-                icon: '🏛️',
-                title: isAlgo ? 'Built on Algorand' : 'Built on Arc',
-                desc: isAlgo ? 'Runs on Algorand for quick confirmations and low fees.' : 'Runs on Arc for fast settlement and a smooth wallet experience.'
+                icon: '🌊',
+                title: isAlgo ? 'Swims on Algorand' : 'Dives into Arc',
+                desc: [
+                  isAlgo ? 'Runs on Algorand L1 for sub-2s finality and fee-less vibes.' : 'Runs on Arc for instant settlement and a native wallet experience.',
+                  'Your tokens stay on the chain you trust — no wrapping, no detours.',
+                  'Direct wallet-to-wallet settlement. No middlemen siphoning ink.',
+                ].join('||'),
               },
               {
-                icon: '🐙',
+                icon: '🦑',
                 title: 'Octopus-Adaptive Branding',
-                desc: `Pactopus changes its primary colors in milliseconds to match ${isAlgo ? 'Algorand' : 'Arc'} branding, so each tailored workspace feels native to the blockchain it serves.`
+                desc: [
+                  `Pactopus shifts its primary palette in milliseconds to match ${isAlgo ? 'Algorand teal' : 'Arc coral'}.`,
+                  'Each tailored workspace feels native to the chain it serves — like a master of mimicry.',
+                  'No awkward "does this look right?" moments. Just camouflage, perfected.',
+                ].join('||'),
               },
               {
                 icon: '🛡️',
-                title: 'Verified Payments',
-                desc: 'Payments are checked server-side before invoices are marked as paid, so status updates feel reliable and easy to trust.'
+                title: 'Verified, Server-Side Settlements',
+                desc: [
+                  'Every payment is checked server-side before an invoice flips to "paid".',
+                  'No fake confirmations, no client-side trickery, no ghost transactions.',
+                  'Status updates you can actually trust. Your business, double-checked.',
+                ].join('||'),
               },
               {
-                icon: '⚖️',
-                title: 'Perfect Alignment',
-                desc: 'Pactopus creates a perfect balance of trust between clients and freelancers, backed by the certainty of the blockchain.'
-              }
-            ].map(f => (
-              <div key={f.title} className="card" style={{ padding: '2.5rem 2rem' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '1.25rem', color: 'var(--accent-gold)' }}>
+                icon: '🤝',
+                title: 'Client + Freelancer Aligned',
+                desc: [
+                  'Creates the perfect trust balance: clients see exactly what they pay for, you see exactly when it lands.',
+                  'No haggling, no chasing, no awkward "did you get it yet?" emails.',
+                  'Blockchain certainty + human-friendly UI = happy tentacles all around.',
+                ].join('||'),
+              },
+              {
+                icon: '❤️',
+                title: 'Octopus Fact',
+                desc: [
+                  'Did you know? Octopuses have three hearts.',
+                  'Pactopus has three priorities: 1) you get paid, 2) fees stay tiny, 3) your client can actually figure out how to click Pay.',
+                  'Also: octopuses have blue blood. We just have blue (and teal, and coral) UI accents. 💙',
+                ].join('||'),
+                special: true,
+              },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="card"
+                style={{
+                  padding: '2rem 1.75rem',
+                  borderRadius: 24,
+                  backgroundColor: f.special
+                    ? 'transparent'
+                    : 'var(--bg-card)',
+                  backgroundImage: f.special
+                    ? 'linear-gradient(160deg, rgba(var(--brand-rgb),0.10) 0%, rgba(var(--brand-secondary-rgb),0.06) 50%, rgba(255,255,255,0.02) 100%)'
+                    : 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: f.special
+                    ? '1px solid rgba(var(--brand-rgb),0.25)'
+                    : '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: f.special
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 40px rgba(var(--brand-rgb),0.10)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 30px rgba(0,0,0,0.3)',
+                  transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease, border-color 220ms ease',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(-5px)';
+                  el.style.boxShadow = f.special
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.1), 0 18px 50px rgba(var(--brand-rgb),0.16)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.07), 0 16px 45px rgba(0,0,0,0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = f.special
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 40px rgba(var(--brand-rgb),0.10)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 30px rgba(0,0,0,0.3)';
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '1rem', color: f.special ? 'var(--accent-gold)' : 'var(--accent-gold)' }}>
                   {f.icon}
                 </div>
-                <h3 className="heading-md" style={{ marginBottom: '1rem', fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>{f.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.65 }}>{f.desc}</p>
+                <h3 className="heading-md" style={{ marginBottom: '1rem', fontFamily: 'var(--font-display)', color: f.special ? 'var(--accent-gold)' : 'var(--accent-gold)', fontSize: '1.15rem' }}>{f.title}</h3>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.90rem', lineHeight: 1.7 }}>
+                  {f.desc.split('||').map((bullet, bi) => (
+                    <div key={bi} style={{ display: 'flex', gap: '0.5rem', marginBottom: bi < 2 ? '0.45rem' : 0 }}>
+                      <span style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }}>•</span>
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -721,33 +716,60 @@ function HomeContent() {
       <section style={{ padding: '5rem 0', background: 'var(--bg-surface)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>Transparent Pricing</p>
-            <h2 className="display-md">Choose Your Plan</h2>
+            <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>🪸 Transparent Pricing</p>
+            <h2 className="display-md">Pick Your Tentacle Tier</h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
+              Swim solo, build a reef, or command an armada — every tier packed with cephalo-power.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', maxWidth: 1000, margin: '0 auto' }}>
             {[
               {
                 plan: 'free' as const,
+                tierLabel: 'The Solo Tide',
                 price: '£0',
                 period: 'forever',
-                features: ['5 invoices/month', 'USDC & EURC', 'Shareable payment links', '0.5% transaction fee'],
+                tagline: 'Dip a single tentacle. Free, forever.',
+                features: [
+                  '5 invoices/month — perfect for side hustles',
+                  'USDC & EURC stablecoin payouts',
+                  'Shareable payment links (copy-paste easy)',
+                  '0.5% transaction fee — only when you get paid',
+                  'Chain-adaptive UI (camouflage included 🎨)',
+                ],
                 cta: 'Start for free',
                 highlight: false,
               },
               {
                 plan: 'pro' as const,
+                tierLabel: 'The Reef Pro',
                 price: '£12',
                 period: '/month',
-                features: ['Unlimited invoices', 'Custom branding', 'CSV export', '0.4% transaction fee', 'Priority support'],
+                tagline: 'Serious invoicing for serious tentacles.',
+                features: [
+                  'Unlimited invoices — swim as big as you like',
+                  'Custom branding (add your own logo + vibes)',
+                  'CSV export — feed the accountants 📊',
+                  '0.4% transaction fee — more saved per payout',
+                  'Priority support — we\'re all tentacles on deck',
+                ],
                 cta: 'Go Pro',
                 highlight: true,
               },
               {
                 plan: 'business' as const,
+                tierLabel: 'The Armada Business',
                 price: '£49',
                 period: '/month',
-                features: ['Everything in Pro', 'Team accounts (5 seats)', 'API access', '0.3% transaction fee', 'Dedicated support'],
+                tagline: 'When one octopus isn\'t enough. Deploy the fleet.',
+                features: [
+                  'Everything in The Reef Pro — unlocked, amplified',
+                  'Team accounts (5 seats) — swim with your squad',
+                  'API access — hook Pactopus into your stack',
+                  '0.3% transaction fee — volume savings, chef\'s kiss',
+                  'Dedicated support — a tentacle you can call on',
+                ],
                 cta: 'Contact us',
                 highlight: false,
               },
@@ -757,27 +779,72 @@ function HomeContent() {
                 className="card"
                 style={{
                   padding: '2rem',
+                  borderRadius: 26,
                   position: 'relative',
-                  ...(tier.highlight ? {
-                    border: '1px solid var(--accent-cyan)',
-                    boxShadow: '0 18px 60px rgba(var(--brand-rgb), 0.18)',
-                  } : {}),
+                  backgroundColor: tier.highlight
+                    ? 'transparent'
+                    : 'var(--bg-card)',
+                  backgroundImage: tier.highlight
+                    ? 'linear-gradient(180deg, rgba(var(--brand-rgb),0.12) 0%, rgba(var(--brand-secondary-rgb),0.06) 50%, rgba(255,255,255,0.02) 100%)'
+                    : 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: tier.highlight
+                    ? '1px solid rgba(var(--brand-rgb),0.32)'
+                    : '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: tier.highlight
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 14px 55px rgba(var(--brand-rgb),0.16)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 30px rgba(0,0,0,0.3)',
+                  transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease',
+                  overflow: 'visible',
+                  zIndex: tier.highlight ? 2 : 1,
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
               >
                 {tier.highlight && (
-                  <div style={{ position: 'absolute', top: '14px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-                    <span className="badge badge-cyan">Most popular</span>
-                  </div>
+                  <>
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '140%',
+                      height: '140%',
+                      background: 'radial-gradient(circle, rgba(var(--brand-rgb),0.18) 0%, rgba(var(--brand-secondary-rgb),0.08) 35%, transparent 70%)',
+                      filter: 'blur(20px)',
+                      pointerEvents: 'none',
+                      zIndex: -1,
+                      animation: 'pulse 3.2s ease-in-out infinite',
+                    }} />
+                    <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                      <span className="badge badge-cyan" style={{
+                        padding: '0.45rem 1rem',
+                        borderRadius: 999,
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        fontSize: '0.72rem',
+                        boxShadow: '0 6px 20px rgba(var(--brand-rgb),0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                        background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-red))',
+                        color: '#1a0a00',
+                        border: 'none',
+                      }}>
+                        ✨ POPULAR
+                      </span>
+                    </div>
+                  </>
                 )}
-                <p className="label" style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{tier.plan}</p>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1.5rem' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 800 }}>{tier.price}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{tier.period}</span>
+                <div style={{ marginBottom: '1rem', paddingTop: tier.highlight ? '0.75rem' : 0 }}>
+                  <p className="label" style={{ color: tier.highlight ? 'var(--accent-gold)' : 'var(--text-muted)', marginBottom: '0.35rem', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>{tier.plan} tier</p>
+                  <h3 className="heading-md" style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: '1.35rem' }}>{tier.tierLabel}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem', lineHeight: 1.45, marginBottom: 0 }}>{tier.tagline}</p>
                 </div>
-                <ul style={{ listStyle: 'none', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1.5rem' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '2.75rem', fontWeight: 800, color: tier.highlight ? 'var(--accent-gold)' : 'var(--text-primary)' }}>{tier.price}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{tier.period}</span>
+                </div>
+                <ul style={{ listStyle: 'none', marginBottom: '2rem', padding: 0 }}>
                   {tier.features.map(f => (
-                    <li key={f} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
-                      <span style={{ color: 'var(--accent-green)' }}>✓</span> {f}
+                    <li key={f} style={{ padding: '0.55rem 0', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.87rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.55rem', lineHeight: 1.45 }}>
+                      <span style={{ color: 'var(--accent-green)', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -785,6 +852,7 @@ function HomeContent() {
                   onClick={() => handlePlanClick(tier.plan, tier.price)}
                   className={`btn ${tier.highlight ? 'btn-primary' : 'btn-secondary'} btn-full`}
                   id={`pricing-${tier.plan}-btn`}
+                  ref={tier.highlight ? subModalTriggerRef : undefined}
                 >
                   {tier.cta}
                 </button>
@@ -795,24 +863,42 @@ function HomeContent() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────── */}
-      <section style={{ padding: '6rem 0', textAlign: 'center' }}>
-        <div className="container-sm">
+      <section style={{ padding: '6rem 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 700,
+          height: 700,
+          maxWidth: '140%',
+          background: 'radial-gradient(circle, rgba(var(--brand-rgb),0.12) 0%, rgba(var(--brand-secondary-rgb),0.06) 35%, transparent 70%)',
+          filter: 'blur(40px)',
+          pointerEvents: 'none',
+        }} />
+        <div className="container-sm" style={{ position: 'relative', zIndex: 1 }}>
+          <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem', fontSize: '0.85rem', letterSpacing: '0.1em' }}>🐙 One last cephalo-pun before you go:</p>
           <h2 className="display-md" style={{ marginBottom: '1rem' }}>
-            Ready to create your first <span className="gradient-text-gold">invoice</span>?
+            Why don't octopuses like late payments?<br />
+            <span className="gradient-text-gold">They prefer settled cephalo-pods.</span> 🥁
           </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
-            Join freelancers and consultants already using Pactopus. Create your first invoice for free and share it in minutes.
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.0625rem', lineHeight: 1.7, maxWidth: 580, marginInline: 'auto' }}>
+            Okay, we\'ll ink-vest in better jokes. But seriously — join the freelancers, agencies, and studios already using Pactopus to get paid. First invoice is free, takes under a minute, and all 3 hearts are into it.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="bottom-cta-btn">
-              Create Your First Invoice →
+            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="bottom-cta-btn" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 360 }}>
+              🐙 Create Your First Invoice →
             </Link>
-            <Link href="/onboarding" className="btn btn-ghost btn-lg">
-              See how it works
+            <Link href="/onboarding" className="btn btn-ghost btn-lg" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 360 }}>
+              📚 See how it works
             </Link>
           </div>
         </div>
       </section>
+
+      </main>
+
+      {showOverlay && <WorkspaceOverlay onSelect={handleWorkspaceChoice} />}
 
       {/* ── Footer ───────────────────────────────────── */}
       <footer className="footer">
@@ -824,7 +910,7 @@ function HomeContent() {
               </div>
               <p className="footer-copy">
                 © 2026 Kyrvyn Ltd. All rights reserved.<br />
-                Built by Gabriele Iacopo Langellotto. Powered by {isAlgo ? 'Algorand' : 'Arc'}, recolored in milliseconds by Pactopus.
+                Built by Gabriele Iacopo Langellotto. Powered by {isAlgo ? 'Algorand' : 'Arc'}, recolored in milliseconds by Pactopus. Three hearts. Eight arms. Zero chargebacks.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
@@ -842,6 +928,7 @@ function HomeContent() {
           price={selectedPlan.price}
           onClose={() => setShowSubModal(false)}
           onSuccess={handleSubSuccess}
+          triggerRef={subModalTriggerRef as unknown as React.RefObject<HTMLElement>}
         />
       )}
     </div>

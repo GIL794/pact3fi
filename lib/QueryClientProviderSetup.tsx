@@ -25,19 +25,21 @@ export default function QueryClientSetup({ children }: { children: ReactNode }) 
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            duration: 4500,
-            style: {
-              background: 'var(--bg-elevated)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-elevated)',
-            },
-          }}
-        />
+        <div aria-live="polite" aria-atomic="true" aria-relevant="additions text">
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 4500,
+              style: {
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-elevated)',
+              },
+            }}
+          />
+        </div>
       </QueryClientProvider>
     </ThemeProvider>
   );

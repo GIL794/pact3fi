@@ -25,6 +25,9 @@ function DashboardContent() {
   const { isConnected, address, usdcBalance, eurcBalance, refreshBalances, network } = useWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [p2pDemoLoading, setP2pDemoLoading] = useState(false);
+  const [p2pDemoResult, setP2pDemoResult] = useState<any>(null);
+  const [p2pDemoError, setP2pDemoError] = useState<string | null>(null);
   const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business' || 'free';
@@ -33,6 +36,29 @@ function DashboardContent() {
   });
 
   const isAlgo = network === 'algorand';
+
+  const handleRunP2PDemo = async () => {
+    setP2pDemoLoading(true);
+    setP2pDemoError(null);
+    setP2pDemoResult(null);
+    try {
+      const res = await fetch('/api/agent/demo-p2p', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Request failed with status ${res.status}`);
+      }
+      setP2pDemoResult(data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setP2pDemoError(msg || 'Demo failed unexpectedly');
+    } finally {
+      setP2pDemoLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isConnected) return;
@@ -266,6 +292,106 @@ function DashboardContent() {
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Yearly fee savings</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-gold)' }}>1,440 USDC</div>
         </div>
+      </div>
+
+      {/* Agentic P2P Demo Card */}
+      <div className="card" style={{ marginTop: '2.5rem', border: '1px solid rgba(var(--accent-teal-rgb), 0.28)', background: 'rgba(var(--accent-teal-rgb), 0.04)' }}>
+        <h3 className="heading-md" style={{ marginBottom: '0.75rem', fontFamily: 'var(--font-display)' }}>
+          🐙 Agentic P2P Demo — Freelancer ⇄ Client
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
+          Run a full autonomous two-agent flow end-to-end: the Freelancer agent creates a stablecoin invoice and the Client agent auto-approves + pays with a paymaster-sponsored on-chain fee split.
+        </p>
+
+        <button
+          className="btn btn-primary"
+          onClick={handleRunP2PDemo}
+          disabled={p2pDemoLoading}
+          id="run-p2p-demo-btn"
+          style={{ marginBottom: p2pDemoResult || p2pDemoError ? '1.5rem' : '0' }}
+        >
+          {p2pDemoLoading ? '⏳ Running demo…' : '▶ Run Live P2P Agent Demo'}
+        </button>
+
+        {p2pDemoError && (
+          <div style={{ padding: '1rem 1.25rem', background: 'rgba(var(--danger-rgb), 0.08)', border: '1px solid rgba(var(--danger-rgb), 0.28)', borderRadius: 'var(--radius-md)', color: 'var(--danger)', fontSize: '0.875rem' }}>
+            ❌ {p2pDemoError}
+          </div>
+        )}
+
+        {p2pDemoResult && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Approval Rationale Pill */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-green" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                ✅ Auto-Approved
+              </span>
+              <div style={{ flex: 1, minWidth: 280, padding: '0.875rem 1rem', background: 'var(--bg-sunken)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                {p2pDemoResult.approvalRationale}
+              </div>
+            </div>
+
+            {/* Agent Names */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--field-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>👩‍💻 Freelancer Agent</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p2pDemoResult.agents?.freelancer?.name}</div>
+              </div>
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--field-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>🏢 Client Agent</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p2pDemoResult.agents?.client?.name}</div>
+              </div>
+            </div>
+
+            {/* Amounts Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ padding: '0.875rem 1rem', background: 'rgba(var(--success-rgb), 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(var(--success-rgb), 0.22)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>💰 Net to Freelancer</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--accent-green)' }}>
+                  {p2pDemoResult.payment?.netAmount}
+                </div>
+              </div>
+              <div style={{ padding: '0.875rem 1rem', background: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(var(--accent-gold-rgb), 0.22)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>🏦 Platform Fee (0.5%)</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--accent-gold)' }}>
+                  {p2pDemoResult.payment?.feeAmount}
+                </div>
+              </div>
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--bg-sunken)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>📄 Invoice Amount</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--text-primary)' }}>
+                  {p2pDemoResult.invoice?.amount} {p2pDemoResult.invoice?.currency}
+                </div>
+              </div>
+            </div>
+
+            {/* Tx Links */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--field-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem' }}>🔗 Payout Transaction</div>
+                <a
+                  href={p2pDemoResult.onChainLinks?.payoutTxLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--accent-cyan)', wordBreak: 'break-all' }}
+                >
+                  {p2pDemoResult.payment?.payoutTxHash?.slice(0, 16)}…
+                </a>
+              </div>
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--field-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem' }}>🔗 Fee Transaction</div>
+                <a
+                  href={p2pDemoResult.onChainLinks?.feeTxLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--accent-cyan)', wordBreak: 'break-all' }}
+                >
+                  {p2pDemoResult.payment?.feeTxHash?.slice(0, 16)}…
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
