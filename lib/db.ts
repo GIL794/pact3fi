@@ -13,7 +13,7 @@ function getPrismaClient(): PrismaClient | null {
     return null;
   }
   try {
-    validateCriticalEnvs({ mode: process.env.NODE_ENV === 'production' ? 'strict' : 'warn' });
+    validateCriticalEnvs();
     const adapter = new PrismaPg({ connectionString: url });
     return (
       globalForPrisma.prisma ??

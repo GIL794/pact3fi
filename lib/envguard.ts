@@ -12,22 +12,34 @@ export const SENSITIVE_ENV_NAMES: string[] = [
   "NEXT_PUBLIC_PLATFORM_WALLET",
 ];
 
-const MUST_HAVE: string[] = [
+const IS_BUILD_OR_CI_CONTEXT: boolean = Boolean(
+  process.env.CI ||
+    process.env.VERCEL ||
+    process.env.GITHUB_ACTIONS ||
+    process.env.NEXT_BUILD_ID ||
+    process.env.NETLIFY ||
+    process.env.RENDER
+);
+
+const MUST_HAVE_CRASH: string[] = [
+  "NEXT_PUBLIC_USDC_ADDRESS",
+  "NEXT_PUBLIC_PLATFORM_WALLET",
+];
+
+const MUST_HAVE_WARN: string[] = [
   "DATABASE_URL",
   "ARC_AGENT_PRIVATE_KEY",
   "CIRCLE_API_KEY",
   "CIRCLE_ENTITY_SECRET",
   "PAYMASTER_SIGNER_KEY",
-  "NEXT_PUBLIC_USDC_ADDRESS",
-  "NEXT_PUBLIC_PLATFORM_WALLET",
 ];
 
 const REMEDIATION_HINTS: Record<string, string> = {
-  DATABASE_URL: "set Neon PostgreSQL URL in Vercel env",
-  ARC_AGENT_PRIVATE_KEY: "export Arc agent 0x-prefixed private key from Coinbase AgentKit",
-  CIRCLE_API_KEY: "generate Circle Developer-Controlled Wallets API key at https://console.circle.com",
-  CIRCLE_ENTITY_SECRET: "create Circle Entity Secret + RSA keypair per Circle docs",
-  PAYMASTER_SIGNER_KEY: "0x-prefused ECDSA private key that sponsors gas via paymaster",
+  DATABASE_URL: "set Neon PostgreSQL URL in Vercel env — feature downgrades to local storage if missing",
+  ARC_AGENT_PRIVATE_KEY: "export Arc agent 0x-prefixed private key from Coinbase AgentKit — treasury sweep skips when missing",
+  CIRCLE_API_KEY: "generate Circle Developer-Controlled Wallets API key at https://console.circle.com — falls back to ethers local signer",
+  CIRCLE_ENTITY_SECRET: "create Circle Entity Secret + RSA keypair per Circle docs — paired with CIRCLE_API_KEY",
+  PAYMASTER_SIGNER_KEY: "0x-prefixed ECDSA private key that sponsors gas via paymaster — per-boot random signer used if missing",
   NEXT_PUBLIC_USDC_ADDRESS: "USDC token contract address (0x + 40 hex chars) on target chain",
   NEXT_PUBLIC_PLATFORM_WALLET: "Pactopus platform treasury address (0x + 40 hex chars, EVM-compatible)",
 };
@@ -66,21 +78,40 @@ function validateStructure(name: string, value: string): string | null {
 }
 
 export function validateCriticalEnvs(opts?: { mode?: "strict" | "warn" }): void {
-  const effectiveMode: "strict" | "warn" =
-    opts?.mode ?? (process.env.NODE_ENV === "production" ? "strict" : "warn");
+  const defaultMode: "strict" | "warn" =
+    process.env.NODE_ENV === "production" ? "strict" : "warn";
 
-  const missingItems: Array<{ name: string; reason: string }> = [];
+  let effectiveMode: "strict" | "warn" = opts?.mode ?? defaultMode;
 
-  for (const name of MUST_HAVE) {
+  if (IS_BUILD_OR_CI_CONTEXT && opts?.mode !== "strict") {
+    effectiveMode = "warn";
+  }
+
+  const missingItems: Array<{ name: string; reason: string; severity: "blocker" | "warning" }> = [];
+
+  for (const name of MUST_HAVE_CRASH) {
     const raw = process.env[name];
     if (isPlaceholderValue(raw)) {
       const hint = REMEDIATION_HINTS[name] ?? "set in environment";
-      missingItems.push({ name, reason: `missing → ${hint}` });
+      missingItems.push({ name, reason: `missing → ${hint}`, severity: "blocker" });
       continue;
     }
     const structErr = validateStructure(name, String(raw));
     if (structErr) {
-      missingItems.push({ name, reason: `invalid → ${structErr}` });
+      missingItems.push({ name, reason: `invalid → ${structErr}`, severity: "blocker" });
+    }
+  }
+
+  for (const name of MUST_HAVE_WARN) {
+    const raw = process.env[name];
+    if (isPlaceholderValue(raw)) {
+      const hint = REMEDIATION_HINTS[name] ?? "set in environment";
+      missingItems.push({ name, reason: `missing → ${hint}`, severity: "warning" });
+      continue;
+    }
+    const structErr = validateStructure(name, String(raw));
+    if (structErr) {
+      missingItems.push({ name, reason: `invalid → ${structErr}`, severity: "warning" });
     }
   }
 
@@ -89,27 +120,30 @@ export function validateCriticalEnvs(opts?: { mode?: "strict" | "warn" }): void 
     if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
       const structErr = validateStructure(name, String(raw));
       if (structErr && !missingItems.some((m) => m.name === name)) {
-        missingItems.push({ name, reason: `invalid → ${structErr}` });
+        missingItems.push({ name, reason: `invalid → ${structErr}`, severity: "warning" });
       }
     }
   }
 
   if (missingItems.length === 0) return;
 
+  const blockers = missingItems.filter((m) => m.severity === "blocker");
+  const warnings = missingItems.filter((m) => m.severity === "warning");
   const lines = missingItems.map(
-    (m) => `  - ${m.name} ${m.reason}`
+    (m) => `  - [${m.severity.toUpperCase()}] ${m.name} ${m.reason}`
   );
-  const message = `[envguard] ${missingItems.length} critical environment issue(s):\n${lines.join("\n")}`;
+  const message = `[envguard] ${missingItems.length} environment issue(s) (${blockers.length} blocker, ${warnings.length} warning):\n${lines.join("\n")}`;
 
-  if (effectiveMode === "strict") {
+  const onlyWarnings = blockers.length === 0;
+  if (effectiveMode === "strict" && !onlyWarnings) {
     const err = new Error(message);
     err.name = "EnvGuardValidationError";
     throw err;
-  } else {
-    const prefix = "\x1b[33m[envguard] WARN:\x1b[0m";
-    for (const m of missingItems) {
-      console.warn(`${prefix} ${m.name} missing (ok for dev, required for production). Hint: ${REMEDIATION_HINTS[m.name] ?? "set in environment"}`);
-    }
+  }
+
+  const prefix = "\x1b[33m[envguard] WARN:\x1b[0m";
+  for (const m of missingItems) {
+    console.warn(`${prefix} ${m.name} (${m.severity}): ${m.reason}`);
   }
 }
 

@@ -122,7 +122,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  validateCriticalEnvs();
+  validateCriticalEnvs({ mode: "warn" });
   installGlobalLogHooks();
   return (
     <html
