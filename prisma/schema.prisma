@@ -8,6 +8,7 @@ generator client {
 
 model Invoice {
   id               String    @id
+  ownerAddress     String    @default("")
   amount           String
   currency         String
   description      String
@@ -22,8 +23,10 @@ model Invoice {
   paidBy           String?
   fee              String?
   network          String    @default("arc") // 'arc' | 'algorand'
+  isSystem         Boolean   @default(false)
   updatedAt        DateTime  @updatedAt
 
+  @@index([ownerAddress, network, status])
   @@index([network, status])
   @@index([recipientAddress])
 }
@@ -35,6 +38,19 @@ model Subscription {
   txHash    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model InvoiceUsage {
+  id            String   @id @default(cuid())
+  ownerAddress  String
+  network       String
+  billingMonth  String // Format: YYYY-MM, e.g. "2026-08"
+  invoicesUsed  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([ownerAddress, network, billingMonth])
+  @@index([ownerAddress, network])
 }
 
 model AgentLog {

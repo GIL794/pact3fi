@@ -19,6 +19,11 @@ interface DashboardStats {
   totalEarnedEURC: string;
   earningsThisMonth: string;
   recentInvoices: Invoice[];
+  tier: 'free' | 'pro' | 'business';
+  invoicesUsedThisMonth: number;
+  invoicesAllowedThisMonth: number;
+  billingCycleStart: string;
+  billingCycleEnd: string;
 }
 
 function DashboardContent() {
@@ -28,9 +33,9 @@ function DashboardContent() {
   const [p2pDemoLoading, setP2pDemoLoading] = useState(false);
   const [p2pDemoResult, setP2pDemoResult] = useState<any>(null);
   const [p2pDemoError, setP2pDemoError] = useState<string | null>(null);
-  const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
+  const [subTier, setSubTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business' || 'free';
+      return (localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business') || 'free';
     }
     return 'free';
   });
@@ -65,16 +70,24 @@ function DashboardContent() {
     recordMilestone('first_dashboard_visit');
   }, [isConnected]);
 
-  // TanStack Query with dynamic caching & auto-polling every 10s
+  // Server-scoped dashboard stats: per owner (wallet address), per network, per current billing month.
   const { data: stats, isLoading, refetch } = useQuery<DashboardStats>({
-    queryKey: ['dashboardStats', network],
+    queryKey: ['dashboardStats', network, address],
     queryFn: async () => {
-      const res = await fetch(`/api/invoices?network=${network}`);
+      const url = `/api/invoices?network=${network}${address ? `&owner=${encodeURIComponent(address)}` : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch dashboard stats');
       return res.json();
     },
-    refetchInterval: 10000, // Poll every 10 seconds to catch ledger updates
+    refetchInterval: 10000,
   });
+
+  // Keep UI tier in sync with server's Prisma Subscription tier.
+  useEffect(() => {
+    if (stats?.tier && (stats.tier === 'free' || stats.tier === 'pro' || stats.tier === 'business')) {
+      setSubTier(stats.tier);
+    }
+  }, [stats?.tier]);
 
   const handleRefresh = async () => {
     await refreshBalances();
@@ -150,12 +163,26 @@ function DashboardContent() {
           </div>
           <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Combined USDC+EURC</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">📋 Total Invoices</div>
-          <div className="stat-value" style={{ marginTop: '0.5rem' }}>{isLoading ? '—' : stats?.totalInvoices}</div>
+        <div className="stat-card" style={{ border: '1px solid rgba(var(--accent-cyan-rgb), 0.22)' }}>
+          <div className="stat-label">
+            {subTier === 'free' ? '📋 Invoices this month' : '📋 Total Invoices'}
+          </div>
+          <div className="stat-value" style={{ marginTop: '0.5rem' }}>
+            {isLoading ? '—' : (subTier === 'free' ? (stats?.invoicesUsedThisMonth ?? 0) : (stats?.totalInvoices ?? 0))}
+            {subTier === 'free' && !isLoading ? (
+              <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+                {' '}/ {stats?.invoicesAllowedThisMonth ?? 5}
+              </span>
+            ) : null}
+          </div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>{stats?.paidInvoices} Paid</span>
             <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>{stats?.pendingInvoices} Pending</span>
+            {subTier === 'free' && stats?.billingCycleEnd ? (
+              <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
+                Resets {new Date(stats.billingCycleEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>

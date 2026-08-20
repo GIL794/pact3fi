@@ -34,27 +34,36 @@ function CreateForm() {
     recipientName: '',
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
-  
-  // Subscription status
-  const [subTier] = useState<'free' | 'pro' | 'business'>(() => {
+
+  const [subTier, setSubTier] = useState<'free' | 'pro' | 'business'>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business' || 'free';
+      return (localStorage.getItem('pactopus_subscription') as 'free' | 'pro' | 'business') || 'free';
     }
     return 'free';
   });
 
-  // Query to fetch active network stats using TanStack Query
+  // Pull server-side scoped stats: per (ownerWallet, network, currentMonth) + tier from Prisma.
   const { data: stats } = useQuery({
-    queryKey: ['dashboardStats', network],
+    queryKey: ['dashboardStats', network, address],
     queryFn: async () => {
-      const res = await fetch(`/api/invoices?network=${network}`);
+      const res = await fetch(`/api/invoices?network=${network}${address ? `&owner=${encodeURIComponent(address)}` : ''}`);
       if (!res.ok) throw new Error('Failed to fetch invoice count');
       return res.json();
     },
+    enabled: true,
   });
 
-  const invoiceCount = stats?.totalInvoices || 0;
-  const isBlocked = subTier === 'free' && invoiceCount >= 5;
+  // Apply server-side tier (from Prisma Subscription) to keep UI in sync.
+  useEffect(() => {
+    if (stats?.tier && (stats.tier === 'free' || stats.tier === 'pro' || stats.tier === 'business')) {
+      setSubTier(stats.tier);
+    }
+  }, [stats?.tier]);
+
+  const invoicesUsedThisMonth = typeof stats?.invoicesUsedThisMonth === 'number' ? stats.invoicesUsedThisMonth : 0;
+  const invoicesAllowedThisMonth = typeof stats?.invoicesAllowedThisMonth === 'number' ? stats.invoicesAllowedThisMonth : 5;
+  const invoiceCount = invoicesUsedThisMonth;
+  const isBlocked = subTier === 'free' && invoicesUsedThisMonth >= invoicesAllowedThisMonth;
 
   // Sync recipient address when wallet connects/changes
   useEffect(() => {
@@ -92,21 +101,24 @@ function CreateForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Mutation to handle invoice creation
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (address) headers['X-Pactopus-Owner'] = address;
       const res = await fetch('/api/invoices', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers,
+        body: JSON.stringify({
+          ...formData,
+          ownerAddress: address || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create invoice');
       return data.invoice;
     },
     onSuccess: (invoice) => {
-      // Invalidate the stats query so it forces reload of counts on redirect
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', network] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', network, address] });
       recordMilestone('first_invoice_created');
       router.push(`/pay/${invoice.id}?created=true`);
     },
@@ -172,7 +184,7 @@ function CreateForm() {
             </button>
             {subTier === 'free' ? (
               <span className="badge badge-cyan" style={{ border: '1px solid var(--border)' }}>
-                {invoiceCount} / 5 invoices
+                {invoiceCount} / {invoicesAllowedThisMonth} invoices this month
               </span>
             ) : (
               <span className="badge badge-green">✓ Unlimited invoices</span>
@@ -331,7 +343,7 @@ function CreateForm() {
               marginBottom: '1.5rem',
               lineHeight: 1.5
             }}>
-              ⚠️ <strong>You’ve used all 5 Free invoices.</strong> Upgrade on the homepage to unlock unlimited invoices.
+              ⚠️ <strong>You’ve used all {invoicesAllowedThisMonth} Free invoices for this billing month.</strong> Upgrade on the homepage to unlock unlimited invoices, or wait until the next billing cycle when your limit resets automatically.
             </div>
           )}
 
