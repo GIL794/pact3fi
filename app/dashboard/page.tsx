@@ -129,7 +129,7 @@ function DashboardContent() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.25rem' }}>Overview</p>
-          <h1 className="display-md" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontFamily: 'var(--font-display)' }}>
+          <h1 className="display-md" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontFamily: 'var(--font-display)', textWrap: 'balance', scrollMarginTop: '5rem' }}>
             Your invoices ({isAlgo ? 'Algorand' : 'Arc'})
             <span className={`badge ${subTier === 'free' ? 'badge-cyan' : subTier === 'pro' ? 'badge-purple' : 'badge-green'}`} style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>
               {subTier} plan
@@ -290,11 +290,13 @@ function DashboardContent() {
                             className="btn btn-secondary btn-sm"
                             onClick={() => copyInvoiceLink(inv.id)}
                             id={`copy-link-${inv.id}`}
+                            aria-label={copied === inv.id ? 'Payment link copied to clipboard' : `Copy payment link for invoice ${inv.id}`}
+                            aria-live="polite"
                           >
                             {copied === inv.id ? '✓' : '🔗'}
                           </button>
                         )}
-                        <Link href={`/pay/${inv.id}`} className="btn btn-ghost btn-sm" id={`view-invoice-${inv.id}`}>
+                        <Link href={`/pay/${inv.id}`} className="btn btn-ghost btn-sm" id={`view-invoice-${inv.id}`} aria-label={`View invoice ${inv.id} details and payment page`}>
                           View
                         </Link>
                       </div>

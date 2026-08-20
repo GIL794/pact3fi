@@ -203,52 +203,61 @@ function CreateForm() {
         <form onSubmit={handleSubmit} noValidate>
           {/* Amount + Currency */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label className="input-label" style={{ marginBottom: '0.625rem', display: 'block' }}>
-              Amount
-            </label>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
-                <input
-                  type="number"
-                  className={`input input-lg ${errors.amount ? 'input-error' : ''}`}
-                  placeholder="0.00"
-                  value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                  min="0"
-                  step="0.01"
-                  id="invoice-amount-input"
-                  style={{ borderColor: errors.amount ? 'var(--accent-red)' : undefined }}
-                />
-                {errors.amount && <p style={{ color: 'var(--accent-red)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>{errors.amount}</p>}
+            <fieldset style={{ padding: 0, margin: 0, border: 'none' }}>
+              <legend className="input-label" style={{ marginBottom: '0.625rem', display: 'block', padding: 0, width: '100%' }}>
+                Invoice amount and currency
+              </legend>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <label htmlFor="invoice-amount-input" className="sr-only">Amount</label>
+                  <input
+                    type="number"
+                    name="invoiceAmount"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className={`input input-lg ${errors.amount ? 'input-error' : ''}`}
+                    placeholder="0.00"
+                    value={form.amount}
+                    onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                    min="0"
+                    step="0.01"
+                    id="invoice-amount-input"
+                    style={{ borderColor: errors.amount ? 'var(--accent-red)' : undefined }}
+                  />
+                  {errors.amount && <p style={{ color: 'var(--accent-red)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>{errors.amount}</p>}
+                </div>
+                <div className="currency-toggle" style={{ flexShrink: 0 }} role="group" aria-label="Invoice currency">
+                  <button
+                    type="button"
+                    className={`currency-toggle-btn ${form.currency === 'USDC' ? 'active usdc' : ''}`}
+                    onClick={() => setForm(f => ({ ...f, currency: 'USDC' }))}
+                    id="select-usdc-btn"
+                    aria-pressed={form.currency === 'USDC'}
+                  >
+                    💵 USDC
+                  </button>
+                  <button
+                    type="button"
+                    className={`currency-toggle-btn ${form.currency === 'EURC' ? 'active eurc' : ''}`}
+                    onClick={() => setForm(f => ({ ...f, currency: 'EURC' }))}
+                    id="select-eurc-btn"
+                    aria-pressed={form.currency === 'EURC'}
+                  >
+                    💶 EURC
+                  </button>
+                </div>
               </div>
-              <div className="currency-toggle" style={{ flexShrink: 0 }}>
-                <button
-                  type="button"
-                  className={`currency-toggle-btn ${form.currency === 'USDC' ? 'active usdc' : ''}`}
-                  onClick={() => setForm(f => ({ ...f, currency: 'USDC' }))}
-                  id="select-usdc-btn"
-                >
-                  💵 USDC
-                </button>
-                <button
-                  type="button"
-                  className={`currency-toggle-btn ${form.currency === 'EURC' ? 'active eurc' : ''}`}
-                  onClick={() => setForm(f => ({ ...f, currency: 'EURC' }))}
-                  id="select-eurc-btn"
-                >
-                  💶 EURC
-                </button>
-              </div>
-            </div>
+            </fieldset>
           </div>
 
           {/* Description */}
           <div className="input-group" style={{ marginBottom: '1.5rem' }}>
             <label className="input-label" htmlFor="invoice-description">
-              What’s this for?
+              What’s this invoice for?
             </label>
             <textarea
               id="invoice-description"
+              name="invoiceDescription"
               className="input"
               placeholder={isAlgo ? "e.g. Algorand dApp testing retained services — Q3 2026" : "e.g. Brand strategy consulting — Q3 2025, 20 hours"}
               value={form.description}
@@ -266,7 +275,9 @@ function CreateForm() {
             </label>
             <input
               id="invoice-recipient-name"
+              name="invoiceRecipientName"
               type="text"
+              autoComplete="name"
               className="input"
               placeholder="e.g. Gabriele L."
               value={form.recipientName}
@@ -284,6 +295,7 @@ function CreateForm() {
                   onClick={handleConnectFill}
                   className="btn btn-secondary btn-sm"
                   style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem' }}
+                  aria-label="Fill wallet address from currently connected wallet"
                 >
                   Use connected wallet
                 </button>
@@ -291,7 +303,12 @@ function CreateForm() {
             </label>
             <input
               id="invoice-wallet-address"
+              name="invoiceWalletAddress"
               type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               className="input"
               placeholder={isAlgo ? "Paste your Algorand address…" : "Paste your 0x address…"}
               value={form.recipientAddress}
@@ -318,11 +335,13 @@ function CreateForm() {
             <div className="tooltip-wrapper" style={{ marginTop: '0.375rem' }}>
               <button
                 type="button"
+                aria-label="Help: What is a wallet address?"
+                aria-describedby="wallet-address-help"
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8125rem', cursor: 'help', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
               >
                 ℹ️ What is a wallet address?
               </button>
-              <div className="tooltip" style={{ whiteSpace: 'normal', maxWidth: 280, textAlign: 'left' }}>
+              <div id="wallet-address-help" className="tooltip" role="tooltip" style={{ whiteSpace: 'normal', maxWidth: 280, textAlign: 'left' }}>
                 {isAlgo ? (
                   "This is your receiving address on Algorand. When someone pays, the stablecoins go straight here."
                 ) : (

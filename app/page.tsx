@@ -256,7 +256,16 @@ function HomeContent() {
           </div>
 
           {/* Headline */}
-          <h1 className="display-xl" style={{ maxWidth: 950, margin: '0 auto 1.5rem', lineHeight: '1.15' }}>
+          <h1
+            className="display-xl"
+            style={{
+              maxWidth: 950,
+              margin: '0 auto 1.5rem',
+              lineHeight: '1.15',
+              textWrap: 'balance',
+              scrollMarginTop: '5rem',
+            }}
+          >
             Send Invoices.<br />
             Tentacles Adapt in <span className="gradient-text-gold">Milliseconds</span>.
           </h1>
@@ -351,7 +360,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>🐙 How it works</p>
-            <h2 className="display-md">Three Hearts. Eight Arms. One Killer Flow.</h2>
+            <h2 className="display-md" style={{ textWrap: 'balance', scrollMarginTop: '5rem' }}>Three Hearts. Eight Arms. One Killer Flow.</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem', lineHeight: 1.7, maxWidth: 620, marginInline: 'auto' }}>
               Three hearts. One for you. One for your client. One to keep blocks finalizing fast.<br />
               Pactopus juggles the chains so you don\'t have to — every tentacle doing exactly what it does best.
@@ -478,7 +487,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p className="label" style={{ color: 'var(--accent-red)', marginBottom: '0.75rem' }}>⚖️ The Showdown</p>
-            <h2 className="display-md">Old Legacy vs Pactopus Tentacle</h2>
+            <h2 className="display-md" style={{ textWrap: 'balance', scrollMarginTop: '5rem' }}>Old Legacy vs Pactopus Tentacle</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
               Crunched on a £5,000 monthly invoice. The numbers don\'t lie — and neither do octopuses.
             </p>
@@ -602,7 +611,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>✨ Why it works</p>
-            <h2 className="display-md">Built with Tentacle-Level Precision</h2>
+            <h2 className="display-md" style={{ textWrap: 'balance', scrollMarginTop: '5rem' }}>Built with Tentacle-Level Precision</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
               Every feature engineered with one goal: getting you paid faster, cheaper, and with way more personality.
             </p>
@@ -717,7 +726,7 @@ function HomeContent() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem' }}>🪸 Transparent Pricing</p>
-            <h2 className="display-md">Pick Your Tentacle Tier</h2>
+            <h2 className="display-md" style={{ textWrap: 'balance', scrollMarginTop: '5rem' }}>Pick Your Tentacle Tier</h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '1rem' }}>
               Swim solo, build a reef, or command an armada — every tier packed with cephalo-power.
             </p>
@@ -739,6 +748,7 @@ function HomeContent() {
                   'Chain-adaptive UI (camouflage included 🎨)',
                 ],
                 cta: 'Start for free',
+                ctaAria: 'Select the Solo Tide free plan',
                 highlight: false,
               },
               {
@@ -755,6 +765,7 @@ function HomeContent() {
                   'Priority support — we\'re all tentacles on deck',
                 ],
                 cta: 'Go Pro',
+                ctaAria: 'Select the Reef Pro plan at £12 per month',
                 highlight: true,
               },
               {
@@ -771,6 +782,7 @@ function HomeContent() {
                   'Dedicated support — a tentacle you can call on',
                 ],
                 cta: 'Contact us',
+                ctaAria: 'Contact sales about the Armada Business plan at £49 per month',
                 highlight: false,
               },
             ].map(tier => (
@@ -853,6 +865,7 @@ function HomeContent() {
                   className={`btn ${tier.highlight ? 'btn-primary' : 'btn-secondary'} btn-full`}
                   id={`pricing-${tier.plan}-btn`}
                   ref={tier.highlight ? subModalTriggerRef : undefined}
+                  aria-label={(tier as any).ctaAria || tier.cta}
                 >
                   {tier.cta}
                 </button>
@@ -878,7 +891,7 @@ function HomeContent() {
         }} />
         <div className="container-sm" style={{ position: 'relative', zIndex: 1 }}>
           <p className="label" style={{ color: 'var(--accent-gold)', marginBottom: '0.75rem', fontSize: '0.85rem', letterSpacing: '0.1em' }}>🐙 One last cephalo-pun before you go:</p>
-          <h2 className="display-md" style={{ marginBottom: '1rem' }}>
+          <h2 className="display-md" style={{ marginBottom: '1rem', textWrap: 'balance', scrollMarginTop: '5rem' }}>
             Why don't octopuses like late payments?<br />
             <span className="gradient-text-gold">They prefer settled cephalo-pods.</span> 🥁
           </h2>
