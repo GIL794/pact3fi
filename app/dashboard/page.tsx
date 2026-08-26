@@ -10,6 +10,8 @@ import type { Invoice } from '@/lib/store';
 import { getAlgoTxLink } from '@/lib/algo';
 import { getTxLink } from '@/lib/arc';
 import { useQuery } from '@tanstack/react-query';
+import { usePactopusAuth } from '@/lib/use-pactopus-auth';
+import UpgradePlanButton from '@/components/UpgradePlanButton';
 
 interface DashboardStats {
   totalInvoices: number;
@@ -28,6 +30,7 @@ interface DashboardStats {
 
 function DashboardContent() {
   const { isConnected, address, usdcBalance, eurcBalance, refreshBalances, network } = useWallet();
+  const { signedFetch } = usePactopusAuth();
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [p2pDemoLoading, setP2pDemoLoading] = useState(false);
@@ -74,12 +77,12 @@ function DashboardContent() {
   const { data: stats, isLoading, refetch } = useQuery<DashboardStats>({
     queryKey: ['dashboardStats', network, address],
     queryFn: async () => {
-      const url = `/api/invoices?network=${network}${address ? `&owner=${encodeURIComponent(address)}` : ''}`;
-      const res = await fetch(url);
+      const res = await signedFetch(`/api/invoices?network=${network}`, { method: 'GET' });
       if (!res.ok) throw new Error('Failed to fetch dashboard stats');
       return res.json();
     },
     refetchInterval: 10000,
+    enabled: isConnected,
   });
 
   // Keep UI tier in sync with server's Prisma Subscription tier.
@@ -186,6 +189,21 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {subTier === 'free' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', border: '1px dashed var(--accent-gold)', borderRadius: 'var(--radius-md)', background: 'color-mix(in srgb, var(--accent-gold) 6%, transparent)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '1.4rem' }}>⬆️</div>
+          <div style={{ flex: '1 1 260px' }}>
+            <div style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+              You’re on the FREE plan — 5 invoices / month included
+            </div>
+            <div style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+              Upgrade to Pro (10,000) or Business (1,000,000) to unlock higher volumes. Pay with a card via Circle Checkout — you’ll be able to try the mock-approve flow locally too.
+            </div>
+          </div>
+          <UpgradePlanButton compact />
+        </div>
+      ) : null}
 
       {/* Network status */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1.25rem', background: 'var(--field-bg)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', marginBottom: '2.5rem', flexWrap: 'wrap' }}>

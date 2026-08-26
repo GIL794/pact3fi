@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets';
 import { ERC20_ABI } from './arc';
+import { safeLogger } from './log-redact';
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
 
@@ -123,7 +124,21 @@ export async function createCircleSigner(params: CreateCircleSignerParams): Prom
   }
 
   const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
-  const key = privateKey || ethers.Wallet.createRandom().privateKey;
+  let key: string | undefined = privateKey;
+  if (!key) {
+    if (process.env.PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER === '1') {
+      safeLogger.warn(
+        '[CircleSigner] PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER=1 set; using ethers.Wallet.createRandom() ephemeral signer for this process. Keys do NOT persist. Disable in production unless judge demo path requires it.'
+      );
+      key = ethers.Wallet.createRandom().privateKey;
+    } else {
+      const err = new Error(
+        '[CircleSigner] Neither Circle credentials (CIRCLE_API_KEY + CIRCLE_ENTITY_SECRET) nor an explicit privateKey were provided, and PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER is not set. Configure Circle Developer-Controlled Wallets credentials OR explicitly opt-in to the ephemeral ethers demo signer with PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER=1.'
+      );
+      err.name = 'CircleSignerConfigurationError';
+      throw err;
+    }
+  }
   const wallet = new ethers.Wallet(key, provider);
 
   return {

@@ -7,7 +7,7 @@ generator client {
 }
 
 model Invoice {
-  id               String    @id
+  id               String    @id @default(cuid())
   ownerAddress     String    @default("")
   amount           String
   currency         String
@@ -16,13 +16,13 @@ model Invoice {
   recipientName    String?
   createdAt        DateTime  @default(now())
   expiresAt        DateTime?
-  status           String    @default("pending") // 'pending' | 'paid' | 'expired'
+  status           String    @default("pending")
   txHash           String?   @unique
   feeTxHash        String?
   paidAt           DateTime?
   paidBy           String?
   fee              String?
-  network          String    @default("arc") // 'arc' | 'algorand'
+  network          String    @default("arc")
   isSystem         Boolean   @default(false)
   updatedAt        DateTime  @updatedAt
 
@@ -34,8 +34,9 @@ model Invoice {
 model Subscription {
   id        String   @id @default(cuid())
   address   String   @unique
-  tier      String   @default("free") // 'free' | 'pro' | 'business'
+  tier      String   @default("free")
   txHash    String?
+  sessionId String?  @unique(map: "idx_subscription_session_id_unique")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -43,8 +44,8 @@ model Subscription {
 model InvoiceUsage {
   id            String   @id @default(cuid())
   ownerAddress  String
-  network       String
-  billingMonth  String // Format: YYYY-MM, e.g. "2026-08"
+  network       String   @default("arc")
+  billingMonth  String
   invoicesUsed  Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

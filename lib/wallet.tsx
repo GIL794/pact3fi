@@ -48,6 +48,18 @@ interface WalletContextType extends WalletState {
   switchNetwork: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   setNetwork: (network: 'arc' | 'algorand') => void;
+  /**
+   * Request a wallet signature over an arbitrary UTF-8 message.
+   *
+   * Arc/EVM wallets use `personal_sign` (universally supported across
+   * MetaMask, Coinbase, Phantom, Rabby, WalletConnect, and Exodus).
+   * Algorand wallets are not currently required to sign for auth because
+   * the write endpoints authenticate only on EVM mode at the moment.
+   *
+   * @returns Hex-encoded `0x`-prefixed signature (EVM) or a base64 string
+   *   (Algorand — placeholder until the production auth layer expands).
+   */
+  signMessage: (message: string) => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -652,8 +664,58 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
   }, [getProvider, disconnect, state.network]);
 
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (state.network === 'algorand') {
+      if (process.env.NEXT_PUBLIC_PACTOPUS_ALLOW_ALGORAND_WRITE_AUTH === '1' || process.env.PACTOPUS_ALLOW_ALGORAND_WRITE_AUTH === '1') {
+        console.warn(
+          '[Wallet:signMessage] Algorand personal_sign requested; PACTOPUS_ALLOW_ALGORAND_WRITE_AUTH=1 opt-in set; returning empty string (unsigned stub fallback). Switch network to Arc/EVM for cryptographically binding write-signed headers in production.'
+        );
+        return '';
+      }
+      throw new Error(
+        '[Wallet:signMessage] Algorand write-auth personal_sign is not implemented in this build. Switch the wallet network to Arc/EVM (MetaMask, Coinbase Wallet, Phantom, or WalletConnect) to use signed-header API endpoints. If you need Algorand during a judge preview, set the env flag PACTOPUS_ALLOW_ALGORAND_WRITE_AUTH=1 to explicitly allow the unsigned-fallback path.'
+      );
+    }
+    if (!state.address) {
+      throw new Error('Wallet must be connected before signing.');
+    }
+    // Arc/EVM — personal_sign. MetaMask, Coinbase, Phantom, Rabby, Exodus, WalletConnect
+    // all implement this method per EIP-191; the provider returned by getProvider() is
+    // an EIP-1193 object so we cast to unknown first to keep eslint strict.
+    if (state.walletType === 'walletconnect') {
+      try {
+        const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+        if (projectId) {
+          const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+          // WalletConnect is stateful — attach the signature to the default provider
+          // if one has already been initialized via connect(). Fall through otherwise.
+          const maybeProvider = (window as any).walletconnectProvider || null;
+          if (maybeProvider && typeof maybeProvider.request === 'function') {
+            const sig: string = await maybeProvider.request({
+              method: 'personal_sign',
+              params: [message, state.address],
+            });
+            return sig;
+          }
+        }
+      } catch (_e) { /* fall through to default provider below */ }
+    }
+    const provider = getProvider(state.walletType);
+    if (!provider || typeof (provider as any).request !== 'function') {
+      throw new Error('Arc/EVM wallet provider is not available for signing. Install MetaMask or Coinbase Wallet and try again.');
+    }
+    const sig: unknown = await (provider as any).request({
+      method: 'personal_sign',
+      params: [message, state.address],
+    });
+    if (typeof sig !== 'string' || !/^0x[a-fA-F0-9]+$/.test(sig)) {
+      throw new Error('Wallet returned a malformed signature.');
+    }
+    return sig;
+  }, [getProvider, state.network, state.walletType, state.address]);
+
   return (
-    <WalletContext.Provider value={{ ...state, connect, disconnect, switchNetwork, refreshBalances, setNetwork }}>
+    <WalletContext.Provider value={{ ...state, connect, disconnect, switchNetwork, refreshBalances, setNetwork, signMessage }}>
       {children}
     </WalletContext.Provider>
   );

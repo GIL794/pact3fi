@@ -9,6 +9,8 @@ import { WalletProvider, useWallet } from '@/lib/wallet';
 import WalletModal from '@/components/WalletModal';
 import { isValidAlgorandAddress } from '@/lib/algo';
 import { recordMilestone } from '@/lib/milestones';
+import { usePactopusAuth } from '@/lib/use-pactopus-auth';
+import UpgradePlanButton from '@/components/UpgradePlanButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type Currency = 'USDC' | 'EURC';
@@ -25,6 +27,7 @@ function CreateForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { address, isConnected, network } = useWallet();
+  const { sign, signedFetch } = usePactopusAuth();
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [form, setForm] = useState<FormData>({
     amount: '',
@@ -46,11 +49,11 @@ function CreateForm() {
   const { data: stats } = useQuery({
     queryKey: ['dashboardStats', network, address],
     queryFn: async () => {
-      const res = await fetch(`/api/invoices?network=${network}${address ? `&owner=${encodeURIComponent(address)}` : ''}`);
+      const res = await signedFetch(`/api/invoices?network=${network}`, { method: 'GET' });
       if (!res.ok) throw new Error('Failed to fetch invoice count');
       return res.json();
     },
-    enabled: true,
+    enabled: isConnected,
   });
 
   // Apply server-side tier (from Prisma Subscription) to keep UI in sync.
@@ -103,15 +106,12 @@ function CreateForm() {
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (address) headers['X-Pactopus-Owner'] = address;
+      const body = { ...formData, network };
+      const headers = await sign({ method: 'POST', pathname: '/api/invoices', body });
       const res = await fetch('/api/invoices', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({
-          ...formData,
-          ownerAddress: address || undefined,
-        }),
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create invoice');
@@ -183,9 +183,12 @@ function CreateForm() {
               {showCopilot ? '✕ Close AI Copilot' : '🤖 AI Copilot & Comms'}
             </button>
             {subTier === 'free' ? (
-              <span className="badge badge-cyan" style={{ border: '1px solid var(--border)' }}>
-                {invoiceCount} / {invoicesAllowedThisMonth} invoices this month
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                <span className="badge badge-cyan" style={{ border: '1px solid var(--border)' }}>
+                  {invoiceCount} / {invoicesAllowedThisMonth} invoices this month
+                </span>
+                <UpgradePlanButton compact />
+              </div>
             ) : (
               <span className="badge badge-green">✓ Unlimited invoices</span>
             )}

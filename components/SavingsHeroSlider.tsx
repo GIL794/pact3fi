@@ -1,6 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  STRIPE_FIXED_PER_INVOICE_GBP,
+  STRIPE_FEE_BPS_DECIMAL,
+  PLATFORM_FEE_BPS_DECIMAL,
+} from '@/lib/billing';
+
+/** React.CSSProperties extended with Pactopus custom CSS variable names used
+ *  inline on the slider bubble/track. Keeping this interface avoids `as any`
+ *  casts on every style object.
+ */
+interface SavingsCSSProperties extends React.CSSProperties {
+  '--thumb-pct': string;
+  '--track-pct': string;
+}
 
 function formatGBP(n: number) {
   return new Intl.NumberFormat('en-GB', {
@@ -15,57 +29,112 @@ export default function SavingsHeroSlider() {
   const MIN = 100;
   const MAX = 50000;
   const STEP = 100;
+  const AVG_INVOICE = 500;
 
-  const avgInvoice = 500;
-  const invoicesPerMonth = Math.max(1, Math.round(monthly / avgInvoice));
-  const stripeFixed = invoicesPerMonth * 0.3;
-  const stripePct = monthly * 0.029;
-  const stripeMonthly = stripeFixed + stripePct;
-  const pactopusMonthly = monthly * 0.005;
+  const {
+    invoicesPerMonth,
+    savedMonth,
+    savedYear,
+    saved3y,
+    saved5y,
+    saved10y,
+  } = useMemo(() => {
+    const inv = Math.max(1, Math.round(monthly / AVG_INVOICE));
+    const stripeMonthly =
+      inv * STRIPE_FIXED_PER_INVOICE_GBP + monthly * STRIPE_FEE_BPS_DECIMAL;
+    const pactopusMonthly = monthly * PLATFORM_FEE_BPS_DECIMAL;
+    const sMonth = Math.max(0, stripeMonthly - pactopusMonthly);
+    return {
+      invoicesPerMonth: inv,
+      savedMonth: sMonth,
+      savedYear: sMonth * 12,
+      saved3y: sMonth * 36,
+      saved5y: sMonth * 60,
+      saved10y: sMonth * 120,
+    };
+  }, [monthly, AVG_INVOICE]);
 
-  const savedMonth = Math.max(0, stripeMonthly - pactopusMonthly);
-  const savedYear = savedMonth * 12;
-  const saved3y = savedMonth * 36;
-  const saved5y = savedMonth * 60;
-  const saved10y = savedMonth * 120;
+  const pct = useMemo(() => ((monthly - MIN) / (MAX - MIN)) * 100, [monthly, MIN, MAX]);
+  const thumbPct = `${pct}%`;
+  const trackPct = `${pct}%`;
+  const bubbleStyle: SavingsCSSProperties = { '--thumb-pct': thumbPct, '--track-pct': trackPct };
+  const trackStyle: SavingsCSSProperties = { '--thumb-pct': thumbPct, '--track-pct': trackPct };
 
-  const pct = ((monthly - MIN) / (MAX - MIN)) * 100;
+  const onAmountInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = Number(e.target.value);
+      if (!Number.isFinite(v)) return;
+      setMonthly(Math.max(MIN, Math.min(MAX, Math.round(v / STEP) * STEP)));
+    },
+    [MIN, MAX, STEP]
+  );
+
+  const onRangeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setMonthly(Number(e.target.value));
+    },
+    []
+  );
 
   return (
     <div
       className="savings-card noise-overlay"
-      aria-label="Savings calculator"
+      aria-label="Monthly invoicing savings calculator"
+      role="group"
+      aria-labelledby="savings-heading savings-purpose"
     >
       <header className="savings-head">
         <div className="savings-head-copy">
-          <p className="savings-kicker">🐙 Ink-redible Savings Calculator</p>
+          <p className="savings-kicker">🐙 Savings — built into every invoice</p>
           <h3 className="savings-title" id="savings-heading">
-            Move the sliders to see how much you save
+            Drag the slider. See how much you keep vs Stripe.
           </h3>
-          <p className="savings-sub">
-            Slide the tentacle (or type) and watch how much you save vs the old-guard processors.
+          <p className="savings-purpose" id="savings-purpose">
+            Tell us your monthly invoicing volume. We'll compare Pactopus (0.5%) against
+            Stripe's 2.9% + 30p per invoice — every pound saved is a pound in your pocket.
           </p>
+          <div className="savings-drag-hint" aria-hidden>
+            <span className="savings-drag-hint-icon">👆</span>
+            <span>
+              <strong>Drag left</strong> for micro-freelancers ·
+              <strong>Drag right</strong> for studios and agencies
+            </span>
+          </div>
         </div>
         <div className="savings-head-amount">
-          <span className="savings-amount-symbol">£</span>
-          <input
-            className="savings-amount-input"
-            type="number"
-            min={MIN}
-            max={MAX}
-            step={STEP}
-            value={monthly}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              if (!Number.isFinite(v)) return;
-              setMonthly(Math.max(MIN, Math.min(MAX, Math.round(v / STEP) * STEP)));
-            }}
-            aria-label="Monthly invoiced amount in pounds"
-          />
+          <div className="savings-amount-group">
+            <span className="savings-amount-symbol" aria-hidden>£</span>
+            <input
+              className="savings-amount-input"
+              type="number"
+              min={MIN}
+              max={MAX}
+              step={STEP}
+              value={monthly}
+              onChange={onAmountInputChange}
+              aria-label="Monthly invoiced amount in pounds. Drag the range slider below or type a value here."
+              aria-valuemin={MIN}
+              aria-valuemax={MAX}
+              aria-valuenow={monthly}
+            />
+          </div>
+          <p className="savings-amount-caption">
+            Your monthly volume · <strong>{MIN.toLocaleString()}</strong> to <strong>{MAX.toLocaleString()}</strong>
+          </p>
         </div>
       </header>
 
       <div className="savings-slider-wrap">
+        <div
+          className="savings-slider-bubble"
+          aria-hidden
+          style={bubbleStyle}
+        >
+          <span>{formatGBP(monthly)}</span>
+          <small>{invoicesPerMonth} invoice{invoicesPerMonth === 1 ? '' : 's'}</small>
+          <i />
+        </div>
+
         <input
           className="savings-slider"
           id="savings-range"
@@ -75,12 +144,36 @@ export default function SavingsHeroSlider() {
           step={STEP}
           value={monthly}
           aria-labelledby="savings-heading"
-          onChange={(e) => setMonthly(Number(e.target.value))}
-          style={{ ['--track-pct' as any]: `${pct}%` } as React.CSSProperties}
+          aria-valuemin={MIN}
+          aria-valuemax={MAX}
+          aria-valuenow={monthly}
+          aria-valuetext={`${formatGBP(monthly)} per month, saving ${formatGBP(savedMonth)} versus Stripe`}
+          onChange={onRangeChange}
+          style={trackStyle}
         />
-        <div className="savings-axis" aria-hidden>
-          <span>🐚 £{MIN.toLocaleString()} (tide pool)</span>
-          <span>🦑 £{MAX.toLocaleString()} (deep ocean)</span>
+
+        <div className="savings-axis">
+          <div className="savings-axis-marker start">
+            <span className="savings-axis-pin" aria-hidden />
+            <span className="savings-axis-label">
+              <em>Start</em> £{MIN.toLocaleString()}
+            </span>
+            <span className="savings-axis-sub">tide pool · micro</span>
+          </div>
+          <div className="savings-axis-marker mid">
+            <span className="savings-axis-pin" aria-hidden />
+            <span className="savings-axis-label">
+              <em>Mid</em> £{((MIN + MAX) / 2).toLocaleString()}
+            </span>
+            <span className="savings-axis-sub">reef · studio</span>
+          </div>
+          <div className="savings-axis-marker end">
+            <span className="savings-axis-pin" aria-hidden />
+            <span className="savings-axis-label">
+              <em>End</em> £{MAX.toLocaleString()}
+            </span>
+            <span className="savings-axis-sub">deep ocean · agency</span>
+          </div>
         </div>
       </div>
 
@@ -88,8 +181,8 @@ export default function SavingsHeroSlider() {
         <p className="savings-highlight-copy">
           You save{' '}
           <strong>{formatGBP(savedMonth)}/mo</strong> vs Stripe (2.9% + 30p) on{' '}
-          {invoicesPerMonth} invoice{invoicesPerMonth === 1 ? '' : 's'} of ~£
-          {avgInvoice} — enough to treat all 3 hearts to something nice 💛❤️💙
+          {invoicesPerMonth} invoice{invoicesPerMonth === 1 ? '' : 's'} of ~£{AVG_INVOICE} —
+          enough to treat all 3 hearts to something nice 💛❤️💙
         </p>
         <div className="savings-year-total">
           <span className="amount">{formatGBP(savedYear)}</span>
@@ -100,7 +193,7 @@ export default function SavingsHeroSlider() {
       <div
         className="savings-future-grid"
         role="grid"
-        aria-label="Projected savings over 3, 5, and 10 years"
+        aria-label="Projected savings over 3, 5, and 10 years at this monthly volume"
       >
         {[
           { label: '3 years', value: saved3y, accent: '🐚' },

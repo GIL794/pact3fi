@@ -17,16 +17,55 @@ export async function POST(request: NextRequest) {
   try {
     const key = process.env.ARC_AGENT_PRIVATE_KEY;
     if (!key) {
-      return NextResponse.json({ error: 'Configuration Error', message: 'Agent private key not configured.' }, { status: 500 });
+      const hint = process.env.NODE_ENV === 'production'
+        ? 'Set ARC_AGENT_PRIVATE_KEY in Vercel Project → Environment Variables. Re-deploy after setting.'
+        : 'Set ARC_AGENT_PRIVATE_KEY in .env.local then restart dev server.';
+      return NextResponse.json(
+        {
+          status: 'skipped',
+          error: 'Agent private key not configured.',
+          hint,
+          remediation: 'https://github.com/coinbase/agentkit/blob/main/README.md → Arc wallet export',
+        },
+        { status: 424 }
+      );
     }
 
     const signer = await createCircleSigner({ privateKey: key, blockchain: 'ARC-TESTNET' });
 
-    const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
-    const usdcBalanceContract = new ethers.Contract(CONTRACTS.USDC, ['function balanceOf(address owner) view returns (uint256)'], provider);
-
-    const balanceRaw = await usdcBalanceContract.balanceOf(signer.address);
-    const balance = parseFloat(ethers.formatUnits(balanceRaw, 6));
+    const timeoutMs = 15_000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let providerBalance: { ok: boolean; balanceRaw?: bigint; err?: Error } | null = null;
+    try {
+      const provider = new ethers.JsonRpcProvider(ARC_RPC_URL);
+      const usdcBalanceContract = new ethers.Contract(CONTRACTS.USDC, ['function balanceOf(address owner) view returns (uint256)'], provider);
+      const balancePromise = (async () => {
+        try {
+          const balanceRaw = await usdcBalanceContract.balanceOf(signer.address);
+          return { ok: true as const, balanceRaw: balanceRaw as bigint };
+        } catch (e) { return { ok: false as const, err: e instanceof Error ? e : new Error(String(e)) }; }
+      })();
+      const timeoutPromise = new Promise<{ok:false;err:Error}>((_, reject) => {
+        controller.signal.addEventListener('abort', () => reject(new Error(`Treasury sweep RPC timed out after ${timeoutMs}ms`)));
+      });
+      providerBalance = await Promise.race([balancePromise, timeoutPromise]) as any;
+    } catch (err) {
+      providerBalance = { ok: false, err: err instanceof Error ? err : new Error(String(err)) };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!providerBalance || !providerBalance.ok) {
+      return NextResponse.json(
+        {
+          status: 'skipped',
+          error: providerBalance?.err?.message || 'Could not read agent balance via RPC.',
+          hint: 'Verify ARC_RPC_URL is reachable and the Arc Testnet chain is live.',
+        },
+        { status: 424 }
+      );
+    }
+    const balance = parseFloat(ethers.formatUnits(providerBalance.balanceRaw!, 6));
 
     const reserveThreshold = 100.00;
 

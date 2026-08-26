@@ -271,23 +271,11 @@ function HomeContent() {
           </h1>
 
           {/* Subheadline */}
-          <p className="body-lg" style={{ color: 'var(--text-secondary)', maxWidth: 680, margin: '0 auto 2.5rem', lineHeight: '1.7' }}>
+          <p className="body-lg" style={{ color: 'var(--text-secondary)', maxWidth: 680, margin: '0 auto 2rem', lineHeight: '1.7' }}>
             Pactopus shifts colors faster than a reef octopus spotting a predator — one millisecond it's {isAlgo ? 'teal-for-Algorand' : 'mango-for-Arc'}, the next it's ready to get you paid. Build an invoice, drop a link, and watch your USDC swim home.
           </p>
 
-          <SavingsHeroSlider />
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
-            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="hero-create-invoice-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
-              🐙 Create an invoice
-            </Link>
-            <Link href="/onboarding" className="btn btn-secondary btn-lg" id="hero-learn-more-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
-              📚 See how it works
-            </Link>
-          </div>
-
-          <div style={{ marginBottom: '3rem' }}>
+          <div style={{ marginBottom: '2rem' }}>
             <span className="badge badge-cyan" style={{ padding: '0.6rem 1rem', fontSize: '0.78rem', letterSpacing: '0.04em' }}>
               {isAlgo
                 ? '🌊 Algorand workspace — ocean teal + deep green camouflage active.'
@@ -295,8 +283,8 @@ function HomeContent() {
             </span>
           </div>
 
-          {/* Social proof stats */}
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* Social proof stats — BEFORE the savings calculator, so trust comes first */}
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '2.25rem' }}>
             {[
               { value: isAlgo ? '1.5s' : '<1s', label: isAlgo ? 'Block finality (faster than you can say "cephalopod")' : 'Instant finality (faster than ink can dry)' },
               { value: '0.5%', label: 'Platform fee (vs 2.9% Stripe — your wallet thanks all 3 hearts)' },
@@ -320,6 +308,19 @@ function HomeContent() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Savings calculator — positioned DIRECTLY above the CTA button (F-pattern: trust → calculate → act) */}
+          <SavingsHeroSlider />
+
+          {/* CTAs */}
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+            <Link href="/create" className="btn btn-primary btn-lg btn-pulse" id="hero-create-invoice-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
+              🐙 Create an invoice
+            </Link>
+            <Link href="/onboarding" className="btn btn-secondary btn-lg" id="hero-learn-more-btn" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 320 }}>
+              📚 See how it works
+            </Link>
           </div>
         </div>
       </section>

@@ -72,11 +72,29 @@ export const CURRENCY_CONFIG: Record<Currency, {
 export const PLATFORM_FEE_BPS = 50; // basis points
 export const PLATFORM_WALLET = process.env.NEXT_PUBLIC_PLATFORM_WALLET || '0x8F6D01C9D6a7F0b6719Ccb9747B12fF2CA91442e';
 
+interface EIP1193Provider {
+  request(args: { method: string; params?: unknown[] | Record<string, unknown> }): Promise<unknown>;
+}
+
+interface EIP1193Error extends Error {
+  code?: number;
+}
+
+function isEIP1193Provider(p: unknown): p is EIP1193Provider {
+  return Boolean(p && typeof p === 'object' && typeof (p as EIP1193Provider).request === 'function');
+}
+
+function isEIP1193Error(err: unknown): err is EIP1193Error {
+  return Boolean(err instanceof Error && 'code' in err && typeof (err as EIP1193Error).code === 'number');
+}
+
 /**
- * Add Arc testnet to MetaMask
+ * Add Arc testnet to MetaMask / EIP-1193 compatible wallet
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function addArcNetwork(provider: any): Promise<void> {
+export async function addArcNetwork(provider: unknown): Promise<void> {
+  if (!isEIP1193Provider(provider)) {
+    throw new TypeError('addArcNetwork expects an EIP-1193 compatible provider');
+  }
   await provider.request({
     method: 'wallet_addEthereumChain',
     params: [{
@@ -90,18 +108,20 @@ export async function addArcNetwork(provider: any): Promise<void> {
 }
 
 /**
- * Switch to Arc testnet
+ * Switch to Arc testnet in an EIP-1193 compatible wallet
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function switchToArc(provider: any): Promise<void> {
+export async function switchToArc(provider: unknown): Promise<void> {
+  if (!isEIP1193Provider(provider)) {
+    throw new TypeError('switchToArc expects an EIP-1193 compatible provider');
+  }
   try {
     await provider.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: `0x${ARC_CHAIN.id.toString(16)}` }],
     });
-  } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-    // 4902 = chain not added
-    if (err.code === 4902) {
+  } catch (err: unknown) {
+    // 4902 = chain not yet added to the wallet, so fall back to prompting an add
+    if (isEIP1193Error(err) && err.code === 4902) {
       await addArcNetwork(provider);
     } else {
       throw err;

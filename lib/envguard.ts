@@ -1,15 +1,31 @@
-export const SENSITIVE_ENV_NAMES: string[] = [
+export const SECRET_ENV_NAMES: string[] = [
   "DATABASE_URL",
+  "DIRECT_DATABASE_URL",
   "ARC_AGENT_PRIVATE_KEY",
   "PAYMASTER_SIGNER_KEY",
   "PAYMASTER_MIN_ALLOWANCE_RAW",
   "PAYMASTER_DAILY_BUDGET_RAW",
   "CIRCLE_API_KEY",
   "CIRCLE_ENTITY_SECRET",
+  "CIRCLE_WEBHOOK_SIGNING_SECRET",
   "TEST_API_KEY",
+];
+
+export const PUBLIC_ENV_SAFELIST: string[] = [
   "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
   "NEXT_PUBLIC_ALGO_PLATFORM_WALLET",
   "NEXT_PUBLIC_PLATFORM_WALLET",
+  "NEXT_PUBLIC_USDC_ADDRESS",
+  "NEXT_PUBLIC_EURC_ADDRESS",
+  "NEXT_PUBLIC_ARC_RPC_URL",
+  "NEXT_PUBLIC_ARC_EXPLORER_URL",
+  "NEXT_PUBLIC_PAYMASTER_ADDRESS",
+  "NEXT_PUBLIC_PACTOPUS_NAME",
+  "NEXT_PUBLIC_PACTOPUS_TAGLINE",
+];
+
+export const SENSITIVE_ENV_NAMES: string[] = [
+  ...SECRET_ENV_NAMES,
 ];
 
 const IS_BUILD_OR_CI_CONTEXT: boolean = Boolean(
@@ -32,16 +48,36 @@ const MUST_HAVE_WARN: string[] = [
   "CIRCLE_API_KEY",
   "CIRCLE_ENTITY_SECRET",
   "PAYMASTER_SIGNER_KEY",
+  "CIRCLE_WEBHOOK_SIGNING_SECRET",
 ];
 
 const REMEDIATION_HINTS: Record<string, string> = {
   DATABASE_URL: "set Neon PostgreSQL URL in Vercel env — feature downgrades to local storage if missing",
+  DIRECT_DATABASE_URL: "Neon direct (non-pooler) endpoint for prisma migrate CLI — optional, falls back to DATABASE_URL",
   ARC_AGENT_PRIVATE_KEY: "export Arc agent 0x-prefixed private key from Coinbase AgentKit — treasury sweep skips when missing",
   CIRCLE_API_KEY: "generate Circle Developer-Controlled Wallets API key at https://console.circle.com — falls back to ethers local signer",
   CIRCLE_ENTITY_SECRET: "create Circle Entity Secret + RSA keypair per Circle docs — paired with CIRCLE_API_KEY",
+  CIRCLE_WEBHOOK_SIGNING_SECRET: "HMAC sha256 secret generated in Circle Console Webhooks tab; validates X-Circle-Signature header on /api/circle/webhook",
   PAYMASTER_SIGNER_KEY: "0x-prefixed ECDSA private key that sponsors gas via paymaster — per-boot random signer used if missing",
+  PAYMASTER_MIN_ALLOWANCE_RAW: "Minimum USDC-6 raw allowance (0-allowable) required before a user op qualifies for paymaster sponsorship. Default: 0.",
+  PAYMASTER_DAILY_BUDGET_RAW: "Maximum USDC-6 raw spend per UTC day for paymaster sponsorship. Default: 1_000_000_000 (1000 USDC).",
   NEXT_PUBLIC_USDC_ADDRESS: "USDC token contract address (0x + 40 hex chars) on target chain",
-  NEXT_PUBLIC_PLATFORM_WALLET: "Pactopus platform treasury address (0x + 40 hex chars, EVM-compatible)",
+  NEXT_PUBLIC_PLATFORM_WALLET: "Pactopus platform treasury address (0x + 40 hex chars, EVM-compatible) — 0.5% platform fee lands here",
+  NEXT_PUBLIC_EURC_ADDRESS: "Optional EURC ERC-20 contract address; defaults to the documented Arc testnet EURC address when unset",
+  NEXT_PUBLIC_ARC_RPC_URL: "Override Arc JSON-RPC URL — default: https://testnet.arc.eco/rpc",
+  NEXT_PUBLIC_ARC_EXPLORER_URL: "Override Arc block explorer URL for tx links — default: https://explorer.arc.eco",
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: "WalletConnect Cloud project ID from https://cloud.walletconnect.com — omit to disable WalletConnect",
+  NEXT_PUBLIC_PAYMASTER_ADDRESS: "Override ERC-4337 Paymaster contract address; falls back to deterministic placeholder",
+  NEXT_PUBLIC_ALGO_PLATFORM_WALLET: "Algorand base32 treasury address for platform fee on Algo axfers — falls back to demo value",
+  NEXT_PUBLIC_PACTOPUS_NAME: "Optional public brand name override shown in browser title and nav (default: 'Pactopus')",
+  NEXT_PUBLIC_PACTOPUS_TAGLINE: "Optional public tagline shown on the landing hero (default: 'Stablecoin invoicing. Settled.')",
+  PACTOPUS_LOG_SQL: "Set to 1 to emit Prisma query logs in development. Default: off.",
+  PACTOPUS_FORCE_CIRCLE_MOCK: "Set to 1 to enable mock-approve Circle flow in NODE_ENV=production deploys (judge previews without Circle creds).",
+  PACTOPUS_DEMO_MODE: "Set to 'true' in scripts/demo-two-agent-p2p to disable DB writes. Default: false.",
+  TEST_API_KEY: "Long random hex string used for internal smoke tests. Optional.",
+  PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER: "🔐 FEATURE_GATE (default off). Set to '1' ONLY in judge-demo preview deploys without a real PAYMASTER_SIGNER_KEY. Enables an in-memory ephemeral Wallet.createRandom() signer. NEVER enable on Vercel production main branch — sponsored gas signatures are unrecoverable after worker recycle.",
+  PACTOPUS_ALLOW_DEMO_STORE_FALLBACK: "🔐 FEATURE_GATE (default off). Set to '1' ONLY for judges/local dev without a Neon Postgres DATABASE_URL. Allows lib/store.ts Prisma failures to fall back to in-memory/local JSON demo data instead of surfacing HTTP 503 Service Unavailable. NEVER enable on Vercel production — data lies about subscription tier + invoice counts.",
+  PACTOPUS_ALLOW_ALGORAND_WRITE_AUTH: "🔐 FEATURE_GATE (default off). Set to '1' ONLY for judge-demo flows on the Algorand network rail. Enables an empty-string unsigned personal_sign stub so write-API endpoints don't throw when Algorand is the selected wallet. ALWAYS prefer Arc/EVM in production (real 4-header cryptographic personal_sign auth chain).",
 };
 
 function isPlaceholderValue(value: string | undefined): boolean {

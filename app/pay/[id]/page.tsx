@@ -11,6 +11,7 @@ import { CURRENCY_CONFIG, ARC_CHAIN, getTxLink, parseTokenAmount, PLATFORM_FEE_B
 import { getAlgoTxLink, ALGO_PLATFORM_WALLET } from '@/lib/algo';
 import { recordMilestone } from '@/lib/milestones';
 import type { Invoice } from '@/lib/store';
+import { usePactopusAuth } from '@/lib/use-pactopus-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type PayStep = 'review' | 'connect' | 'confirm' | 'paying' | 'paid' | 'error' | 'done';
@@ -22,6 +23,7 @@ interface PayPageProps {
 function PaymentContent({ invoiceId }: { invoiceId: string }) {
   const queryClient = useQueryClient();
   const { address, isConnected, isWrongNetwork, switchNetwork, network, setNetwork } = useWallet();
+  const { sign } = usePactopusAuth();
   const searchParams = useSearchParams();
   const isCreator = searchParams.get('created') === 'true';
 
@@ -156,15 +158,17 @@ function PaymentContent({ invoiceId }: { invoiceId: string }) {
     onSuccess: async ({ payoutHash, feeHash }: any) => {
       setTxHash(payoutHash);
       try {
+        const body = {
+          invoiceId: invoice!.id,
+          txHash: payoutHash,
+          feeTxHash: feeHash,
+          payerAddress: address,
+        };
+        const authHeaders = await sign({ method: 'POST', pathname: '/api/pay', body });
         const res = await fetch('/api/pay', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            invoiceId: invoice!.id,
-            txHash: payoutHash,
-            feeTxHash: feeHash,
-            payerAddress: address
-          }),
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify(body),
         });
         const data2 = await res.json();
         if (!res.ok) throw new Error(data2.error);

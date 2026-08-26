@@ -6,9 +6,7 @@ const nextConfig: NextConfig = {
   compress: true,
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      { protocol: "https", hostname: "**" },
-    ],
+    remotePatterns: [],
   },
   experimental: {
     optimizePackageImports: ["@tanstack/react-query", "react-hot-toast"],

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { prisma } from './db';
 import { ERC20_ABI } from './arc';
+import { safeLogger } from './log-redact';
 
 const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.eco/rpc';
 
@@ -13,6 +14,18 @@ const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://testnet.arc.
  * the server signs off on user operations via `paymasterAndData`, records
  * each sponsorship in the Prisma `AgentLog` table (action:
  * `paymaster_sponsor`), and enforces a daily budget via {@link getPaymasterAllowance}.
+ *
+ * SCALE1 — Horizontal Scale Caveat (Vercel multi-worker deployments):
+ * The default `PAYMASTER_CONFIG.dailyBudgetRaw` counter is an in-memory,
+ * per-process allowance calculated against the serverless worker that
+ * happens to serve the request. When deployed to Vercel (or any horizontal
+ * auto-scaler) each warm worker maintains its own running-total, so the
+ * aggregate budget spent across all workers can exceed `dailyBudgetRaw` by
+ * up to (N_workers - 1) × budget. For the hackathon submission this is
+ * acceptable; a production rollout MUST persist the budget ledger to
+ * Postgres (e.g. a `PaymasterLedger(date, spentRaw, sponsorCount)` table
+ * read/written inside `prisma.$transaction`) BEFORE the signer is allowed
+ * to issue paymaster signatures.
  */
 export interface PaymasterConfig {
   /** On-chain paymaster contract address (deterministic placeholder for Arc). */
@@ -29,9 +42,16 @@ export interface PaymasterConfig {
  * Runtime-constant paymaster configuration. Override individual fields via
  * environment variables (e.g. `NEXT_PUBLIC_PAYMASTER_ADDRESS`) for
  * deployments against a real paymaster contract.
+ *
+ * NOTE: The default `DEFAULT_PAYMASTER_ADDRESS_FALLBACK` is a deterministic
+ * placeholder until a real paymaster deploy is done on Arc — replace with the
+ * deployed address env, or keep the signer key in PAYMASTER_SIGNER_KEY which
+ * determines what address will validate signatures on-chain.
  */
+const DEFAULT_PAYMASTER_ADDRESS_FALLBACK = '0xaa51c0deEa7BeEfe000000000000000000000000';
+
 export const PAYMASTER_CONFIG: PaymasterConfig = {
-  address: process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS || '0xPAYM4ST3R000000000000000000000000000000'.replace('PAYM4ST3R', 'aa51c0deEa7BeEf'),
+  address: process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS || DEFAULT_PAYMASTER_ADDRESS_FALLBACK,
   policy: 'budget',
   minAllowance: BigInt(process.env.PAYMASTER_MIN_ALLOWANCE_RAW || '0'),
   dailyBudgetRaw: BigInt(process.env.PAYMASTER_DAILY_BUDGET_RAW || (1000 * 1_000_000).toString()),
@@ -95,6 +115,7 @@ const globalForStore = globalThis as unknown as {
   pactopusSponsoredOps?: Map<string, SponsoredOperation>;
   pactopusSpendRaw?: bigint;
   pactopusSpendWindowStart?: number;
+  pactopusUnsafePaymasterWallet?: ethers.HDNodeWallet | ethers.Wallet;
 };
 
 function getStore(): Map<string, SponsoredOperation> {
@@ -171,8 +192,25 @@ export async function sponsorGasForUserOp(userOp: MinimalUserOp): Promise<Sponso
     );
   }
 
-  const privateKey = process.env.PAYMASTER_SIGNER_KEY || ethers.Wallet.createRandom().privateKey;
-  const signerWallet = new ethers.Wallet(privateKey);
+  let signerWallet: ethers.Wallet | ethers.HDNodeWallet;
+  const configuredKey = process.env.PAYMASTER_SIGNER_KEY;
+  if (configuredKey) {
+    signerWallet = new ethers.Wallet(configuredKey);
+  } else if (process.env.PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER === '1') {
+    if (!globalForStore.pactopusUnsafePaymasterWallet) {
+      safeLogger.warn(
+        '[Paymaster] PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER=1 is set; generating a single in-memory ephemeral signer for this worker process. Signatures are NOT reproducible across deploys. Disable this flag in Vercel production.'
+      );
+      globalForStore.pactopusUnsafePaymasterWallet = ethers.Wallet.createRandom();
+    }
+    signerWallet = globalForStore.pactopusUnsafePaymasterWallet as ethers.HDNodeWallet;
+  } else {
+    const err = new Error(
+      '[Paymaster] PAYMASTER_SIGNER_KEY is not configured. Either set PAYMASTER_SIGNER_KEY (0x + 64 hex chars) or explicitly set PACTOPUS_ALLOW_UNSAFE_PAYMASTER_SIGNER=1 to use an ephemeral per-worker signer (judge-demo only — NEVER in production).'
+    );
+    err.name = 'PaymasterSignerConfigurationError';
+    throw err;
+  }
 
   const sponsorshipHash = hashSponsoredOp(userOp, validUntil, PAYMASTER_CONFIG.address);
   const signature = await signerWallet.signMessage(ethers.getBytes(sponsorshipHash));
@@ -218,7 +256,7 @@ export async function sponsorGasForUserOp(userOp: MinimalUserOp): Promise<Sponso
       });
     }
   } catch (dbErr) {
-    console.warn('[Paymaster] Failed to write AgentLog, keeping in-memory record only:', dbErr);
+    safeLogger.warn('[Paymaster] Failed to write AgentLog, keeping in-memory record only:', dbErr);
   }
 
   return {
@@ -288,7 +326,7 @@ export async function verifySponsoredOp(
       }
     }
   } catch (dbErr) {
-    console.warn('[Paymaster] Prisma AgentLog lookup failed during verify:', dbErr);
+    safeLogger.warn('[Paymaster] Prisma AgentLog lookup failed during verify:', dbErr);
   }
 
   return {
@@ -465,7 +503,7 @@ export async function createSponsoredERC20Transfer(
           }
         }
       } catch (dbErr) {
-        console.warn('[Paymaster] Failed to update AgentLog after tx broadcast:', dbErr);
+        safeLogger.warn('[Paymaster] Failed to update AgentLog after tx broadcast:', dbErr);
       }
     } catch (txErr) {
       const store = getStore();
